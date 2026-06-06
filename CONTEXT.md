@@ -127,5 +127,6 @@ Slot `type` values: `"spell"`, `"macro"`, `"item"`, `"flyout"`, `"summonpet"`, `
 
 | Key | Purpose |
 |---|---|
+| `ABM_CONFIRM_DELETE` | Confirm profile deletion |
 | `ABM_CONFIRM_IMPORT` | Confirm restore from Import or Load |
 | `ABM_SAVE_NAME` | Enter a name when saving a profile |

@@ -205,10 +205,9 @@ local function CreateWindow()
       fn    = function()
         local i = getSelected()
         if not i then ns.Print("Select a profile first."); return end
-        table.remove(ns.db.profiles, i)
-        setSelected(nil)
-        refreshList()
-        eb:Text("")
+        local p = ns.db.profiles[i]
+        f._pendingDelete = i
+        StaticPopup_Show("ABM_CONFIRM_DELETE", p.name)
       end,
     },
   }
@@ -237,6 +236,28 @@ local function CreateWindow()
   end
 
   -- StaticPopup callbacks reference f and eb via upvalue closure
+  StaticPopupDialogs["ABM_CONFIRM_DELETE"] = {
+    text         = "Delete '%s'?",
+    button1      = DELETE,
+    button2      = CANCEL,
+    timeout      = 0,
+    whileDead    = 1,
+    hideOnEscape = 1,
+    OnAccept = function(self)
+      local i = f._pendingDelete
+      if i and ns.db.profiles[i] then
+        table.remove(ns.db.profiles, i)
+        setSelected(nil)
+        refreshList()
+        eb:Text("")
+      end
+      f._pendingDelete = nil
+    end,
+    OnCancel = function(self)
+      f._pendingDelete = nil
+    end,
+  }
+
   StaticPopupDialogs["ABM_CONFIRM_IMPORT"] = {
     text         = "Restore bars from '%s'?",
     button1      = ACCEPT,
