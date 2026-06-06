@@ -1,70 +1,126 @@
-# WoW AddOn Suite — Code Context Index
+# Warbandeer Bars RGS — Code Context
 
-> **Purpose:** Top-level map of the Nazuraki addon suite. Each addon's full code
-> reference now lives in its own `<addon>/CONTEXT.md` — load only the ones you need.
-> This root file holds the cross-cutting bits: the dependency graph, a one-line
-> summary + pointer per addon, and the global slash command registry.
+Captures and restores action bars, keybindings, macros, pet bar, and equipment set names as shareable encoded text profiles. Depends on LibNAddOn and LibNUI.
 
 ---
 
-## Dependency Graph (All Addons)
+## File Map
 
+| File | Purpose |
+|---|---|
+| `init.lua` | Addon bootstrap, `DefaultSettings`, `MigrateDB`, `onLoad` (initialises `ns.settings`) |
+| `capture.lua` | `ns.Capture(include, accountMacros, charMacros) → profile` |
+| `restore.lua` | `ns.Restore(profile, include)` — applies profile to current character |
+| `serialize.lua` | `ns.Encode(profile) → string`, `ns.Decode(text) → profile, err` |
+| `autosave.lua` | Auto-saves on `PLAYER_LOGIN`, `PLAYER_LOGOUT`, `ACTIVE_TALENT_GROUP_CHANGED` |
+| `profilelist.lua` | `ns.BuildProfileList(parent, onSelect) → scroll, Refresh(), GetSelected()` |
+| `window.lua` | Main UI window — Export/Import/Save/Load/Delete, checkbox row, static popups |
+| `libs/base64.lua` | `ns.base64.enc(bytes)`, `ns.base64.dec(str)` |
+| `libs/crc32.lua` | `ns.crc32.enc(bytes) → uint32` |
+
+---
+
+## NS API Surface
+
+```lua
+ns.Capture(include, accountMacros, charMacros)  -- → profile table
+ns.Restore(profile, include)                    -- applies profile; no-op in combat
+ns.Encode(profile)                              -- → copyable text string
+ns.Decode(text)                                 -- → profile, err (nil, msg on failure)
+ns.BuildProfileList(parent, onSelect)           -- → scroll, Refresh(), GetSelected()
+ns.Print(msg)                                   -- addon-prefixed chat print (from LibNAddOn)
+ns.delay(ms, fn)                               -- one-shot timer (overwrites any pending)
+ns:Open()                                       -- show the main window
+ns.settings                                     -- live ref to WarbandeerBarsRGSSettings
+ns.db                                           -- live ref to WarbandeerBarsRGSDB
 ```
-LibNAddOn
-    |
-    +-- LibNUI ──────────────────────────→ LibNUI_Test (LoadOnDemand)
-    |     |
-    |     +-- ShadowsOfUI-XP
-    |     +-- HideStanceBar
-    |     +-- Warbandeer_Alias
-    |     +-- Recycle
-    |     +-- Warbandeer_Characters  (populates WarbandeerApi)
-    |           |
-    |           +-- Warbandeer
-    |           +-- Warbandeer_Collected
-    |
-    +-- Warbandeer_Bars      (LibNAddOn only — headless data layer, populates WarbandeerBarsApi)
-    +-- CombatOutline    (LibNAddOn only, no LibNUI)
-    +-- ShadowsOfUI-DMF (LibNAddOn only, no LibNUI)
 
-(no LibN dependency):
-    HideBagBar  (raw WoW API only)
+---
+
+## DB Schema (`WarbandeerBarsRGSDB`)
+
+Managed by LibNAddOn via `X-NUI-DB` / `X-NUI-DB-VERSION`.
+
+```lua
+WarbandeerBarsRGSDB = {
+  version  = 1,
+  profiles = {               -- array; index 1 = most recent
+    {
+      name     = string,     -- display name (user-entered or auto "Char - Spec")
+      char     = string,     -- UnitName("player") at capture time
+      class    = string,     -- e.g. "WARRIOR"
+      spec     = string,     -- spec display name
+      encoded  = string,     -- ns.Encode() output
+      autosave = bool|nil,   -- true for auto-saved entries
+    },
+    ...
+  },
+}
+```
+
+`MigrateDB` (version 1): initialises `profiles = {}` if absent.
+
+---
+
+## Settings Schema (`WarbandeerBarsRGSSettings`, per-character)
+
+Managed manually in `onLoad` (not via LibNAddOn DB system).
+
+```lua
+WarbandeerBarsRGSSettings = {
+  include = {
+    bars     = bool,   -- default true
+    bindings = bool,   -- default true
+    macros   = bool,   -- default true
+    petbar   = bool,   -- default false
+    outfits  = bool,   -- default true
+  },
+  accountMacros = bool,  -- default true
+  charMacros    = bool,  -- default true
+}
 ```
 
 ---
 
-## Addon Index
+## Profile Table Structure
 
-Load the linked `CONTEXT.md` for full file maps, class hierarchies, API surfaces, and data structures.
+Produced by `ns.Capture`, consumed by `ns.Restore` and `ns.Encode`.
 
-| Addon | Summary | Reference |
-|---|---|---|
-| **LibNAddOn** | Bootstrapping factory (`LibNAddOn(features)`), class system, lua utils, event/DB/settings wiring. Every addon depends on it. | [LibNAddOn/CONTEXT.md](LibNAddOn/CONTEXT.md) |
-| **LibNUI** | OOP UI widget library; global `LibNUI` / `ns.ui`. Region→Frame hierarchy: Texture, Label, StatusBar, Button, TableFrame, TitleFrame, TabFrame, Tooltip, settings widgets. | [LibNUI/CONTEXT.md](LibNUI/CONTEXT.md) |
-| **Warbandeer_Characters** | Data collection backbone; populates `WarbandeerApi`. Broker system, per-character struct, `WarbandeerCharDB` (v7). | [Warbandeer_Characters/CONTEXT.md](Warbandeer_Characters/CONTEXT.md) |
-| **Warbandeer** | Main viewer UI (`/warband`, `/wb`). 13 views, MainWindow, faction widget, `profIntent`, `WarbandeerDB` (v2). | [Warbandeer/CONTEXT.md](Warbandeer/CONTEXT.md) |
-| **Warbandeer_Alias** | Guild-chat alias prefix hook. Single file; `Warbandeer_AliasDB` (v1). | [Warbandeer_Alias/CONTEXT.md](Warbandeer_Alias/CONTEXT.md) |
-| **Warbandeer_Collected** | Transmog set tracker (`/collected`, `/collect`). DataView grid, scan logic, `WarbandeerCollectedDB` (v2). | [Warbandeer_Collected/CONTEXT.md](Warbandeer_Collected/CONTEXT.md) |
-| **ShadowsOfUI-XP** | Minimal full-width XP bar at screen bottom (below max level only). Single file, no DB. | [ShadowsOfUI-XP/CONTEXT.md](ShadowsOfUI-XP/CONTEXT.md) |
-| **HideStanceBar** | Hides the stance bar via reparenting, per-class toggles. `HideStanceBarDB` (v1). | [HideStanceBar/CONTEXT.md](HideStanceBar/CONTEXT.md) |
-| **HideBagBar** | Hides backpack/bag slot buttons. Raw WoW API only — no LibNAddOn. | [HideBagBar/CONTEXT.md](HideBagBar/CONTEXT.md) |
-| **CombatOutline** | Toggles `OutlineEngineMode` CVar in/out of combat. Single file. | [CombatOutline/CONTEXT.md](CombatOutline/CONTEXT.md) |
-| **Recycle** | Auto-sells grey + marked items at merchants (`/recycle`). Per-character `RecycleDB` (v1). | [Recycle/CONTEXT.md](Recycle/CONTEXT.md) |
-| **ShadowsOfUI-DMF** | Headless Darkmoon Faire helper: auto-buy mats, auto-accept turn-ins, auto-complete minigames. No UI, no DB. | [ShadowsOfUI-DMF/CONTEXT.md](ShadowsOfUI-DMF/CONTEXT.md) |
-| **Warbandeer_Bars** | Headless action-bar/keybind/macro profile layer per char+spec; `WarbandeerBarsApi`. `WarbandeerBarsDB` (v1). | [Warbandeer_Bars/CONTEXT.md](Warbandeer_Bars/CONTEXT.md) |
+```lua
+profile = {
+  version  = 1,
+  char     = string,
+  class    = string,
+  spec     = string,
+  slots    = { { id=int, type=string, index=int|nil, strindex=string|nil }, ... },
+  binds    = { { command=string, key1=string|nil, key2=string|nil }, ... },
+  macros   = { { id=int, name=string, icon=string, body=string }, ... },
+  petslots = { { id=int, type=string, index=int|nil, strindex=string|nil }, ... },
+  outfits  = { string, ... },   -- equipment set names
+}
+```
 
-LibNUI_Test is a LoadOnDemand visual test harness for LibNUI (`/nui test [key]`); it has no standalone reference file.
+Slot `type` values: `"spell"`, `"macro"`, `"item"`, `"flyout"`, `"summonpet"`, `"summonmount"`, `"equipmentset"`, `"companion"`, `"petaction"`, `"futurespell"`.
 
 ---
 
-## Slash Command Registry
+## Serialization Format
 
-| Addon | Commands | Sub-commands |
-|---|---|---|
-| LibNAddOn | `/lib` | `player` |
-| LibNUI | `/nui` | `version`, `test [key]` |
-| Warbandeer_Characters | `/characters`, `/wbc` | `list`, `delete <name>`, `refresh`, `refresh items/locks`, `dump`, `dump bank/gt/locks/artifact`, `missing`, `missing me` |
-| Warbandeer | `/warband`, `/wb` | `""` (open), `overview`, `summary`, `gear`, `detail`, `roles`, `races`, `legion`, `midnight`, `profs`, `midnightprofs`, `crafting`, `playtime`, `weekly`, `check legion` |
-| Warbandeer_Collected | `/collected`, `/collect` | `scan` |
-| Recycle | `/recycle` | `clear`, `key CTRL|SHIFT|ALT` |
-| Warbandeer_Bars | `/wbbars`, `/wbb` | `""` (status), `snapshot`, `list`, `restore <char> [specID]`, `forget <char> [specID]` |
+`ns.Encode` packs the profile into a binary buffer, prepends a 5-byte header `[version(1)][crc32(4)]`, base64-encodes it, and wraps it in `# …` comment lines (60-char line width). `ns.Decode` strips comments, base64-decodes, verifies CRC, then unpacks.
+
+---
+
+## Slash Commands
+
+| Command | Action |
+|---|---|
+| `/bars`, `/wbars` | Open the main window |
+
+---
+
+## Static Popups
+
+| Key | Purpose |
+|---|---|
+| `WBARSRGS_CONFIRM_IMPORT` | Confirm restore from Import or Load |
+| `WBARSRGS_SAVE_NAME` | Enter a name when saving a profile |
