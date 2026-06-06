@@ -127,17 +127,28 @@ local function RestoreSlots(slots, overrides, flyouts)
         end
         if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
       elseif s.type == "equipmentset" then
-        local idx = C_EquipmentSet.GetEquipmentSetID(s.strindex)
-        if idx then C_EquipmentSet.PickupEquipmentSet(idx) end
+        if C_EquipmentSet then
+          local setIDs = C_EquipmentSet.GetEquipmentSetIDs()
+          local setID  = setIDs and setIDs[s.index]
+          if setID then C_EquipmentSet.PickupEquipmentSet(setID) end
+          if not GetCursorInfo() then Warn("Missing equipment set #" .. tostring(s.index)) end
+        end
       elseif s.type == "outfit" then
-        local info = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitInfoByName(s.strindex)
-        if info then C_TransmogOutfitInfo.PickupOutfit(info.outfitID) end
-        if not GetCursorInfo() then Warn("Missing outfit: " .. tostring(s.strindex)) end
+        if C_TransmogOutfitInfo then
+          local outfits = C_TransmogOutfitInfo.GetOutfitsInfo()
+          local info    = outfits and outfits[s.index]
+          if info then C_TransmogOutfitInfo.PickupOutfit(info.outfitID) end
+          if not GetCursorInfo() then Warn("Missing outfit #" .. tostring(s.index)) end
+        end
       elseif s.type == "petaction" or s.type == "futurespell" then
         PickupAction(s.id) -- clear
       end
 
-      if GetCursorInfo() then PlaceAction(s.id) end
+      if GetCursorInfo() then
+        PlaceAction(s.id)
+      else
+        PickupAction(s.id)  -- item not found; blank the slot
+      end
       ClearCursor()
     end)
     if not ok then Warn("Slot error [" .. s.id .. "]: " .. tostring(err)) end
@@ -211,8 +222,7 @@ end
 
 ---Apply a profile to the current character.
 ---@param profile table
----@param include table  keys: bars, bindings, macros, petbar, outfits
-function ns.Restore(profile, include)
+function ns.Restore(profile)
   if InCombatLockdown() then
     ns.Print("Cannot restore during combat.")
     return
@@ -220,10 +230,10 @@ function ns.Restore(profile, include)
   local overrides = BuildOverrideMap()
   local flyouts   = BuildFlyoutMap()
 
-  if include.macros  then RestoreMacrosAndSlots(profile.macros or {}, profile.slots or {}) end
-  if include.bars    then RestoreSlots(profile.slots or {}, overrides, flyouts) end
-  if include.bars    then ClearUnusedSlots(profile.slots or {}) end
-  if include.bindings then RestoreBindings(profile.binds or {}) end
-  if include.petbar  then RestorePetBar(profile.petslots or {}) end
+  RestoreMacrosAndSlots(profile.macros or {}, profile.slots or {})
+  RestoreSlots(profile.slots or {}, overrides, flyouts)
+  ClearUnusedSlots(profile.slots or {})
+  RestoreBindings(profile.binds or {})
+  RestorePetBar(profile.petslots or {})
   ns.Print("Bars restored.")
 end

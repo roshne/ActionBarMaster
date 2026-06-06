@@ -1,8 +1,5 @@
 local _, ns = ...
 
--- Auto-saves always capture everything regardless of the user's include settings.
-local FULL_INCLUDE = { bars = true, bindings = true, macros = true, petbar = true, outfits = true }
-
 local function DoAutoSave()
   -- Spec data may not be ready yet on login/reload; retry rather than saving "Unknown"
   local spec     = GetSpecialization and GetSpecialization()
@@ -12,7 +9,7 @@ local function DoAutoSave()
     return
   end
 
-  local profile = ns.Capture(FULL_INCLUDE, true, true)
+  local profile = ns.Capture()
 
   -- Belt-and-suspenders: Capture has its own spec lookup; guard against it too
   if profile.spec == "Unknown" then

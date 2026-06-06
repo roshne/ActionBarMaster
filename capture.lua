@@ -61,10 +61,21 @@ local function CaptureSlots(overrides, includeOutfits)
         elseif slotType == "summonpet" then
           entry.strindex = index  -- GUID string
         elseif slotType == "equipmentset" then
-          entry.strindex = index  -- set name
+          local setIDs = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
+          for pos, setID in ipairs(setIDs or {}) do
+            if C_EquipmentSet.GetEquipmentSetInfo(setID) == index then
+              entry.index = pos
+              break
+            end
+          end
         elseif slotType == "outfit" then
-          local info = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitInfo(index)
-          entry.strindex = info and info.name or tostring(index)
+          local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
+          for pos, info in ipairs(outfits or {}) do
+            if info.outfitID == index then
+              entry.index = pos
+              break
+            end
+          end
         end
         slots[#slots+1] = entry
       end
@@ -86,26 +97,13 @@ local function CaptureBindings()
 end
 
 -- Capture macros
-local function CaptureMacros(accountMacros, charMacros)
+local function CaptureMacros()
   local macros = {}
-
-  if accountMacros then
-    for i = 1, MAX_ACCOUNT_MACROS do
-      local name, icon, body = GetMacroInfo(i)
-      if name then
-        icon = gsub(strupper(icon or "INV_Misc_QuestionMark"), "INTERFACE\\ICONS\\", "")
-        macros[#macros+1] = { id = i, name = name, icon = icon, body = body }
-      end
-    end
-  end
-
-  if charMacros then
-    for i = MAX_ACCOUNT_MACROS + 1, MAX_MACROS do
-      local name, icon, body = GetMacroInfo(i)
-      if name then
-        icon = gsub(strupper(icon or "INV_Misc_QuestionMark"), "INTERFACE\\ICONS\\", "")
-        macros[#macros+1] = { id = i, name = name, icon = icon, body = body }
-      end
+  for i = 1, MAX_MACROS do
+    local name, icon, body = GetMacroInfo(i)
+    if name then
+      icon = gsub(strupper(icon or "INV_Misc_QuestionMark"), "INTERFACE\\ICONS\\", "")
+      macros[#macros+1] = { id = i, name = name, icon = icon, body = body }
     end
   end
   return macros
@@ -139,17 +137,14 @@ local function ProfileMeta()
 end
 
 ---Capture the current character's setup into a profile table.
----@param include table  keys: bars, bindings, macros, petbar, outfits
----@param accountMacros boolean
----@param charMacros boolean
 ---@return table profile
-function ns.Capture(include, accountMacros, charMacros)
+function ns.Capture()
   local overrides = BuildSpellOverrides()
   local profile = ProfileMeta()
   profile.version  = 1
-  profile.slots    = include.bars     and CaptureSlots(overrides, include.outfits) or {}
-  profile.binds    = include.bindings and CaptureBindings()                        or {}
-  profile.macros   = include.macros   and CaptureMacros(accountMacros, charMacros) or {}
-  profile.petslots = include.petbar   and CapturePetBar()                          or {}
+  profile.slots    = CaptureSlots(overrides, true)
+  profile.binds    = CaptureBindings()
+  profile.macros   = CaptureMacros()
+  profile.petslots = CapturePetBar()
   return profile
 end

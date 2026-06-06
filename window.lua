@@ -17,7 +17,7 @@ local function CreateWindow()
     title    = "Action Bar Master",
     special  = true,
     level    = 600,
-    position = { Center = {}, Width = WIN_W, Height = WIN_H },
+    position = { Center = {-75, 150}, Width = WIN_W, Height = WIN_H },
   }
 
   -- ── Column headers ───────────────────────────────────────────────────────
@@ -87,33 +87,6 @@ local function CreateWindow()
   textScroll:Child(eb)
   f._textbox = eb
 
-  -- ── Checkbox row ────────────────────────────────────────────────────────
-  local checkDefs = {
-    { key = "bars",     label = "Action Bars" },
-    { key = "bindings", label = "Bindings"    },
-    { key = "macros",   label = "Macros"      },
-    { key = "outfits",  label = "Outfits"     },
-    { key = "petbar",   label = "Pet Bar"     },
-  }
-  local checkX = PAD
-  for _, def in ipairs(checkDefs) do
-    local cb = ui.CheckButton:new{
-      parent   = f,
-      text     = def.label,
-      position = {
-        Left   = { f, ui.edge.Left,   checkX, 0 },
-        Bottom = { f, ui.edge.Bottom, 0, PAD + BTN_H + PAD },
-        Width  = 24,
-        Height = 24,
-      },
-      OnToggle = function(self)
-        ns.settings.include[def.key] = self:Checked()
-      end,
-    }
-    cb:Checked(ns.settings.include[def.key])
-    checkX = checkX + 110
-  end
-
   -- ── Save dialog (LibNUI, avoids StaticPopup editbox quirks) ─────────────
   local DLG_W, DLG_H = 280, 120
   local saveDialog = ui.TitleFrame:new{
@@ -150,7 +123,7 @@ local function CreateWindow()
   DoSave = function()
     local name = nameBox:Text()
     if name == "" then return end
-    local profile = ns.Capture(ns.settings.include, ns.settings.accountMacros, ns.settings.charMacros)
+    local profile = ns.Capture()
     local encoded = ns.Encode(profile)
     eb:Text(encoded)
     table.insert(ns.db.profiles, {
@@ -184,7 +157,7 @@ local function CreateWindow()
       label = "Export",
       x     = PAD + LIST_W + PAD,
       fn    = function()
-        local profile = ns.Capture(ns.settings.include, ns.settings.accountMacros, ns.settings.charMacros)
+        local profile = ns.Capture()
         local encoded = ns.Encode(profile)
         eb:Text(encoded)
         eb._widget:HighlightText(0, -1)
@@ -273,7 +246,7 @@ local function CreateWindow()
     hideOnEscape = 1,
     OnAccept = function(self)
       if f._pendingProfile then
-        ns.Restore(f._pendingProfile, ns.settings.include)
+        ns.Restore(f._pendingProfile)
         f._pendingProfile = nil
       end
     end,
