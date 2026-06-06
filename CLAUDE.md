@@ -1,4 +1,4 @@
-# Warbandeer Bars RGS — Claude Instructions
+# Action Bar Master — Claude Instructions
 
 ## First Step: Read CONTEXT.md
 

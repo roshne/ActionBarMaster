@@ -1,19 +1,20 @@
 local _, ns = ...
 local ui = ns.ui
 
-local WIN_W = 700
-local WIN_H = 520
-local LIST_W = 240
-local PAD    = 8
-local ROW_H  = 22
-local BTN_H  = 22
+local WIN_W   = 720
+local WIN_H   = 520
+local LIST_W  = 240
+local FILTER_W = 130
+local PAD     = 8
+local ROW_H   = 22
+local BTN_H   = 22
 
 local window = nil
 
 local function CreateWindow()
   local f = ui.TitleFrame:new{
     name     = "WarbandeerBarsRGSWindow",
-    title    = "Warbandeer Bars RGS",
+    title    = "Action Bar Master",
     special  = true,
     level    = 600,
     position = { Center = {}, Width = WIN_W, Height = WIN_H },
@@ -34,7 +35,7 @@ local function CreateWindow()
     parent   = f,
     text     = "Contents",
     position = {
-      TopLeft  = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
+      TopLeft  = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD + FILTER_W + PAD, -PAD },
       TopRight = { f.titlebar, ui.edge.BottomRight, -PAD, -PAD },
       Height   = ROW_H,
     },
@@ -55,8 +56,14 @@ local function CreateWindow()
     if p then f._textbox:Text(p.encoded or "") end
   end
 
-  local _, refreshList, getSelected, setSelected = ns.BuildProfileList(listPanel, OnSelect)
+  local _, refreshList, getSelected, setSelected, setClassFilter = ns.BuildProfileList(listPanel, OnSelect)
   f._refreshList = refreshList
+
+  ns.BuildClassFilter(f, {
+    TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
+    Width   = FILTER_W,
+    Height  = ROW_H,
+  }, function(key) setClassFilter(key) end)
 
   -- ── Right panel (text area) ──────────────────────────────────────────────
   local textScroll = ui.ScrollFrame:new{
@@ -96,6 +103,8 @@ local function CreateWindow()
       position = {
         Left   = { f, ui.edge.Left,   checkX, 0 },
         Bottom = { f, ui.edge.Bottom, 0, PAD + BTN_H + PAD },
+        Width  = 24,
+        Height = 24,
       },
       OnToggle = function(self)
         ns.settings.include[def.key] = self:Checked()
@@ -279,4 +288,4 @@ function ns:Open()
   window:Show()
 end
 
-ns:registerCommand("", nil, function(self) self:Open() end, "Open Warbandeer Bars RGS")
+ns:registerCommand("", nil, function(self) self:Open() end, "Open Action Bar Master")

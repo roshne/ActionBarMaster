@@ -1,6 +1,12 @@
-# Warbandeer Bars RGS — Code Context
+# Action Bar Master — Code Context
 
 Captures and restores action bars, keybindings, macros, pet bar, and equipment set names as shareable encoded text profiles. Depends on LibNAddOn and LibNUI.
+
+---
+
+## Runtime Environment
+
+WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label::`, no `//` integer division, no bitwise operators, no `table.unpack` (use `unpack()`).
 
 ---
 

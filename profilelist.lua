@@ -36,8 +36,9 @@ function ns.BuildProfileList(parent, onSelect)
   }
   scroll:Child(content)
 
-  local rows     = {}
-  local selected = nil
+  local rows        = {}
+  local selected    = nil
+  local classFilter = nil  -- nil = show all
 
   local function Refresh()
     for _, r in ipairs(rows) do r:Hide() end
@@ -45,6 +46,7 @@ function ns.BuildProfileList(parent, onSelect)
     local profiles = ns.db.profiles
     local y = 0
     for i, p in ipairs(profiles) do
+      if not classFilter or p.class == classFilter then
       local h = (p.autosave and p.savedAt) and ROW_H * 2 or ROW_H
       local btn = ui.Button:new{
         parent   = content,
@@ -82,10 +84,12 @@ function ns.BuildProfileList(parent, onSelect)
       }
       rows[#rows+1] = btn
       y = y + h
+      end
     end
     content:Height(math.max(y, 1))
   end
 
   local function SetSelected(v) selected = v end
-  return scroll, Refresh, function() return selected end, SetSelected
+  local function SetClassFilter(key) classFilter = key; Refresh() end
+  return scroll, Refresh, function() return selected end, SetSelected, SetClassFilter
 end
