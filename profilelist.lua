@@ -44,9 +44,14 @@ function ns.BuildProfileList(parent, onSelect)
     for _, r in ipairs(rows) do r:Hide() end
     rows = {}
     local profiles = ns.db.profiles
+    local playerClass = select(2, UnitClass("player"))
+    local spec        = GetSpecialization and GetSpecialization()
+    local playerSpec  = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
     local y = 0
     for i, p in ipairs(profiles) do
-      if not classFilter or p.class == classFilter then
+      local classMatch = not classFilter or p.class == classFilter
+      local specMatch  = classFilter ~= playerClass or p.spec == playerSpec
+      if classMatch and specMatch then
       local h = (p.autosave and p.savedAt) and ROW_H * 2 or ROW_H
       local btn = ui.Button:new{
         parent   = content,

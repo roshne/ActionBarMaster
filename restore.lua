@@ -12,6 +12,17 @@ local function Warn(msg)
   ns.Print("|cffff9900[Bars]|r " .. msg)
 end
 
+local pendingItemWarns = {}
+
+ns:registerEvent("GET_ITEM_INFO_RECEIVED", function(self, itemID, success)
+  if pendingItemWarns[itemID] then
+    pendingItemWarns[itemID] = nil
+    local link = success and select(2, GetItemInfo(itemID))
+               or ("|Hitem:" .. itemID .. "|h[item:" .. itemID .. "]|h")
+    Warn("Missing item " .. link)
+  end
+end)
+
 -- Override map: base spellId -> override spellId (reverse of capture direction)
 local function BuildOverrideMap()
   local map = {}
@@ -105,11 +116,23 @@ local function RestoreSlots(slots, overrides, flyouts)
         local f = flyouts[s.index]
         if f then PickupSpellBookItem(f[1], f[2]) end
         if not GetCursorInfo() then
-          Warn("Unknown flyout [" .. s.index .. "]")
+          local name = GetFlyoutInfo and GetFlyoutInfo(s.index)
+          Warn("Unknown flyout " .. (name and "[" .. name .. "]" or "[" .. s.index .. "]"))
         end
       elseif s.type == "item" then
         PickupItem(s.index)
-        if not GetCursorInfo() then Warn("Missing item [" .. s.index .. "]") end
+        if not GetCursorInfo() and C_ToyBox then
+          C_ToyBox.PickupToyBoxItem(s.index)
+        end
+        if not GetCursorInfo() then
+          local link = select(2, GetItemInfo(s.index))
+          if link then
+            Warn("Missing item " .. link)
+          else
+            pendingItemWarns[s.index] = true
+            C_Item.RequestLoadItemDataByID(s.index)
+          end
+        end
       elseif s.type == "macro" then
         -- handled in RestoreMacros pass; skip here
         return
