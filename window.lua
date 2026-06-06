@@ -67,7 +67,7 @@ local function CreateWindow()
     { key = "outfits",  label = "Outfits"     },
     { key = "petbar",   label = "Pet Bar"     },
   }
-  local checkX = PAD + LIST_W + PAD
+  local checkX = PAD
   for _, def in ipairs(checkDefs) do
     local cb = ui.CheckButton:new{
       parent   = f,
@@ -75,15 +75,13 @@ local function CreateWindow()
       position = {
         Left   = { f, ui.edge.Left,   checkX, 0 },
         Bottom = { f, ui.edge.Bottom, 0, PAD + BTN_H + PAD },
-        Height = ROW_H,
-        Width  = 90,
       },
       OnToggle = function(self)
         ns.settings.include[def.key] = self:Checked()
       end,
     }
     cb:Checked(ns.settings.include[def.key])
-    checkX = checkX + 96
+    checkX = checkX + 110
   end
 
   -- ── Bottom buttons ───────────────────────────────────────────────────────
