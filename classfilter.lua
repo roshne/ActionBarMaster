@@ -47,7 +47,7 @@ function ns.BuildClassFilter(parent, position, onSelect)
   }
 
   local menu = ui.BgFrame:new{
-    name     = "WarbandeerBarsRGSClassFilter",
+    name     = "ActionBarMasterClassFilter",
     parent   = parent,
     level    = 650,
     special  = true,

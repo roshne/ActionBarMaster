@@ -37,18 +37,18 @@ ns.BuildProfileList(parent, onSelect)           -- → scroll, Refresh(), GetSel
 ns.Print(msg)                                   -- addon-prefixed chat print (from LibNAddOn)
 ns.delay(ms, fn)                               -- one-shot timer (overwrites any pending)
 ns:Open()                                       -- show the main window
-ns.settings                                     -- live ref to WarbandeerBarsRGSSettings
-ns.db                                           -- live ref to WarbandeerBarsRGSDB
+ns.settings                                     -- live ref to ActionBarMasterSettings
+ns.db                                           -- live ref to ActionBarMasterDB
 ```
 
 ---
 
-## DB Schema (`WarbandeerBarsRGSDB`)
+## DB Schema (`ActionBarMasterDB`)
 
 Managed by LibNAddOn via `X-NUI-DB` / `X-NUI-DB-VERSION`.
 
 ```lua
-WarbandeerBarsRGSDB = {
+ActionBarMasterDB = {
   version  = 1,
   profiles = {               -- array; index 1 = most recent
     {
@@ -68,12 +68,12 @@ WarbandeerBarsRGSDB = {
 
 ---
 
-## Settings Schema (`WarbandeerBarsRGSSettings`, per-character)
+## Settings Schema (`ActionBarMasterSettings`, per-character)
 
 Managed manually in `onLoad` (not via LibNAddOn DB system).
 
 ```lua
-WarbandeerBarsRGSSettings = {
+ActionBarMasterSettings = {
   include = {
     bars     = bool,   -- default true
     bindings = bool,   -- default true
@@ -127,5 +127,5 @@ Slot `type` values: `"spell"`, `"macro"`, `"item"`, `"flyout"`, `"summonpet"`, `
 
 | Key | Purpose |
 |---|---|
-| `WBARSRGS_CONFIRM_IMPORT` | Confirm restore from Import or Load |
-| `WBARSRGS_SAVE_NAME` | Enter a name when saving a profile |
+| `ABM_CONFIRM_IMPORT` | Confirm restore from Import or Load |
+| `ABM_SAVE_NAME` | Enter a name when saving a profile |

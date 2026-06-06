@@ -13,7 +13,7 @@ local window = nil
 
 local function CreateWindow()
   local f = ui.TitleFrame:new{
-    name     = "WarbandeerBarsRGSWindow",
+    name     = "ActionBarMasterWindow",
     title    = "Action Bar Master",
     special  = true,
     level    = 600,
@@ -117,7 +117,7 @@ local function CreateWindow()
   -- ── Save dialog (LibNUI, avoids StaticPopup editbox quirks) ─────────────
   local DLG_W, DLG_H = 280, 120
   local saveDialog = ui.TitleFrame:new{
-    name     = "WarbandeerBarsRGSSaveDialog",
+    name     = "ActionBarMasterSaveDialog",
     title    = "Save Profile",
     special  = true,
     level    = 700,
@@ -201,7 +201,7 @@ local function CreateWindow()
           return
         end
         f._pendingProfile = profile
-        StaticPopup_Show("WBARSRGS_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+        StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
       end,
     },
     {
@@ -223,7 +223,7 @@ local function CreateWindow()
         local profile, err = ns.Decode(p.encoded or "")
         if not profile then ns.Print("Load failed: " .. (err or "?")); return end
         f._pendingProfile = profile
-        StaticPopup_Show("WBARSRGS_CONFIRM_IMPORT", p.name)
+        StaticPopup_Show("ABM_CONFIRM_IMPORT", p.name)
       end,
     },
     {
@@ -264,7 +264,7 @@ local function CreateWindow()
   end
 
   -- StaticPopup callbacks reference f and eb via upvalue closure
-  StaticPopupDialogs["WBARSRGS_CONFIRM_IMPORT"] = {
+  StaticPopupDialogs["ABM_CONFIRM_IMPORT"] = {
     text         = "Restore bars from '%s'?",
     button1      = ACCEPT,
     button2      = CANCEL,

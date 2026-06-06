@@ -1,7 +1,7 @@
 local _, ns = ...
 
 LibNAddOn{
-  name    = "Warbandeer_Bars_RGS",
+  name    = "ActionBarMaster",
   addOn   = ns,
 }
 
@@ -28,10 +28,10 @@ end
 
 function ns:onLoad()
   -- Initialise per-character settings with defaults for any missing keys
-  if not WarbandeerBarsRGSSettings then
-    WarbandeerBarsRGSSettings = {}
+  if not ActionBarMasterSettings then
+    ActionBarMasterSettings = {}
   end
-  local s = WarbandeerBarsRGSSettings
+  local s = ActionBarMasterSettings
   if not s.include then
     s.include = {}
   end
