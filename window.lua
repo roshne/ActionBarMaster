@@ -3,7 +3,7 @@ local ui = ns.ui
 
 local WIN_W = 700
 local WIN_H = 520
-local LIST_W = 180
+local LIST_W = 240
 local PAD    = 8
 local ROW_H  = 22
 local BTN_H  = 22
@@ -55,7 +55,7 @@ local function CreateWindow()
     if p then f._textbox:Text(p.encoded or "") end
   end
 
-  local _, refreshList, getSelected = ns.BuildProfileList(listPanel, OnSelect)
+  local _, refreshList, getSelected, setSelected = ns.BuildProfileList(listPanel, OnSelect)
   f._refreshList = refreshList
 
   -- ── Right panel (text area) ──────────────────────────────────────────────
@@ -224,6 +224,7 @@ local function CreateWindow()
         local i = getSelected()
         if not i then ns.Print("Select a profile first."); return end
         table.remove(ns.db.profiles, i)
+        setSelected(nil)
         refreshList()
         eb:Text("")
       end,

@@ -3,37 +3,48 @@ local _, ns = ...
 -- Auto-saves always capture everything regardless of the user's include settings.
 local FULL_INCLUDE = { bars = true, bindings = true, macros = true, petbar = true, outfits = true }
 
-local function AutoSaveName()
-  local spec    = GetSpecialization and GetSpecialization()
-  local specName = spec and select(2, GetSpecializationInfo(spec)) or "Unknown"
-  return UnitName("player") .. " - " .. specName
-end
-
 local function DoAutoSave()
-  local profile = ns.Capture(FULL_INCLUDE, true, true)
-  local encoded = ns.Encode(profile)
-  local name    = AutoSaveName()
+  -- Spec data may not be ready yet on login/reload; retry rather than saving "Unknown"
+  local spec     = GetSpecialization and GetSpecialization()
+  local specName = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
+  if not specName or specName == "" then
+    ns:delay(2000, DoAutoSave)
+    return
+  end
 
+  local profile = ns.Capture(FULL_INCLUDE, true, true)
+
+  -- Belt-and-suspenders: Capture has its own spec lookup; guard against it too
+  if profile.spec == "Unknown" then
+    ns:delay(2000, DoAutoSave)
+    return
+  end
+
+  local encoded = ns.Encode(profile)
+  local entry   = {
+    name     = UnitName("player") .. " - " .. profile.spec,
+    char     = profile.char,
+    class    = profile.class,
+    spec     = profile.spec,
+    encoded  = encoded,
+    autosave = true,
+    savedAt  = date("%Y-%m-%d %H:%M"),
+  }
+
+  -- One autosave per character+spec — update in place if one already exists
   local profiles = ns.db.profiles
   for i, p in ipairs(profiles) do
-    if p.autosave and p.name == name then
-      profiles[i] = {
-        name = name, char = profile.char, class = profile.class,
-        spec = profile.spec, encoded = encoded, autosave = true,
-      }
+    if p.autosave and p.char == profile.char and p.spec == profile.spec then
+      profiles[i] = entry
       return
     end
   end
 
-  -- No existing auto-save for this char+spec; insert at top
-  table.insert(profiles, 1, {
-    name = name, char = profile.char, class = profile.class,
-    spec = profile.spec, encoded = encoded, autosave = true,
-  })
+  table.insert(profiles, 1, entry)
 end
 
 ns:registerEvent("PLAYER_ENTERING_WORLD", function(self, isLogin, isReload)
-  if isLogin or isReload then DoAutoSave() end
+  if isLogin or isReload then ns:delay(2000, DoAutoSave) end
 end)
 
 ns:registerEvent("PLAYER_LOGOUT", function(self, ...)

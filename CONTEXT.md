@@ -96,11 +96,10 @@ profile = {
   binds    = { { command=string, key1=string|nil, key2=string|nil }, ... },
   macros   = { { id=int, name=string, icon=string, body=string }, ... },
   petslots = { { id=int, type=string, index=int|nil, strindex=string|nil }, ... },
-  outfits  = { string, ... },   -- equipment set names
 }
 ```
 
-Slot `type` values: `"spell"`, `"macro"`, `"item"`, `"flyout"`, `"summonpet"`, `"summonmount"`, `"equipmentset"`, `"companion"`, `"petaction"`, `"futurespell"`.
+Slot `type` values: `"spell"`, `"macro"`, `"item"`, `"flyout"`, `"summonpet"`, `"summonmount"`, `"equipmentset"`, `"outfit"`, `"companion"`, `"petaction"`, `"futurespell"`.
 
 ---
 

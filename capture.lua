@@ -30,36 +30,44 @@ local function BuildSpellOverrides()
   return map
 end
 
--- Capture all non-empty action bar slots
-local function CaptureSlots(overrides)
+-- Capture all non-empty action bar slots.
+-- includeOutfits: when false, slots of type "outfit" are skipped.
+local function CaptureSlots(overrides, includeOutfits)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
     if slotType and slotType ~= "" then
-      local entry = { id = i, type = slotType }
-      if slotType == "spell" then
-        if subType == "assistedcombat" then
-          entry.index = C_AssistedCombat.GetActionSpell()
-        else
-          entry.index = overrides[index] or index
+      if slotType == "outfit" and not includeOutfits then
+        -- skip
+      else
+        local entry = { id = i, type = slotType }
+        if slotType == "spell" then
+          if subType == "assistedcombat" then
+            entry.index = C_AssistedCombat.GetActionSpell()
+          else
+            entry.index = overrides[index] or index
+          end
+        elseif slotType == "macro" then
+          -- subType means it's a temp macro; resolve real index via cursor
+          if subType then
+            PickupAction(i)
+            _, index = GetCursorInfo()
+            PlaceAction(i)
+          end
+          entry.index = index
+        elseif slotType == "item" or slotType == "flyout"
+            or slotType == "companion" or slotType == "summonmount" then
+          entry.index = index
+        elseif slotType == "summonpet" then
+          entry.strindex = index  -- GUID string
+        elseif slotType == "equipmentset" then
+          entry.strindex = index  -- set name
+        elseif slotType == "outfit" then
+          local info = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitInfo(index)
+          entry.strindex = info and info.name or tostring(index)
         end
-      elseif slotType == "macro" then
-        -- subType means it's a temp macro; resolve real index via cursor
-        if subType then
-          PickupAction(i)
-          _, index = GetCursorInfo()
-          PlaceAction(i)
-        end
-        entry.index = index
-      elseif slotType == "item" or slotType == "flyout"
-          or slotType == "companion" or slotType == "summonmount" then
-        entry.index = index
-      elseif slotType == "summonpet" then
-        entry.strindex = index  -- GUID string
-      elseif slotType == "equipmentset" then
-        entry.strindex = index  -- set name
+        slots[#slots+1] = entry
       end
-      slots[#slots+1] = entry
     end
   end
   return slots
@@ -80,12 +88,7 @@ end
 -- Capture macros
 local function CaptureMacros(accountMacros, charMacros)
   local macros = {}
-  local lo = accountMacros and 1              or (MAX_ACCOUNT_MACROS + 1)
-  local hi = charMacros    and MAX_MACROS     or MAX_ACCOUNT_MACROS
-  if not accountMacros then lo = MAX_ACCOUNT_MACROS + 1 end
-  if not charMacros    then hi = MAX_ACCOUNT_MACROS    end
 
-  -- capture account macros
   if accountMacros then
     for i = 1, MAX_ACCOUNT_MACROS do
       local name, icon, body = GetMacroInfo(i)
@@ -96,7 +99,6 @@ local function CaptureMacros(accountMacros, charMacros)
     end
   end
 
-  -- capture character macros
   if charMacros then
     for i = MAX_ACCOUNT_MACROS + 1, MAX_MACROS do
       local name, icon, body = GetMacroInfo(i)
@@ -124,17 +126,6 @@ local function CapturePetBar()
   return slots
 end
 
--- Capture equipment sets (outfits) — just names; C_EquipmentSet holds the gear
-local function CaptureOutfits()
-  local outfits = {}
-  if not C_EquipmentSet then return outfits end
-  for i = 0, C_EquipmentSet.GetNumEquipmentSets() - 1 do
-    local name = C_EquipmentSet.GetEquipmentSetInfo(i)
-    if name then outfits[#outfits+1] = name end
-  end
-  return outfits
-end
-
 -- Build profile metadata from current character
 local function ProfileMeta()
   local spec = GetSpecialization and GetSpecialization()
@@ -156,10 +147,9 @@ function ns.Capture(include, accountMacros, charMacros)
   local overrides = BuildSpellOverrides()
   local profile = ProfileMeta()
   profile.version  = 1
-  profile.slots    = include.bars     and CaptureSlots(overrides)              or {}
-  profile.binds    = include.bindings and CaptureBindings()                    or {}
+  profile.slots    = include.bars     and CaptureSlots(overrides, include.outfits) or {}
+  profile.binds    = include.bindings and CaptureBindings()                        or {}
   profile.macros   = include.macros   and CaptureMacros(accountMacros, charMacros) or {}
-  profile.petslots = include.petbar   and CapturePetBar()                      or {}
-  profile.outfits  = include.outfits  and CaptureOutfits()                     or {}
+  profile.petslots = include.petbar   and CapturePetBar()                          or {}
   return profile
 end

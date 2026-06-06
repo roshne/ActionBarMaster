@@ -129,6 +129,10 @@ local function RestoreSlots(slots, overrides, flyouts)
       elseif s.type == "equipmentset" then
         local idx = C_EquipmentSet.GetEquipmentSetID(s.strindex)
         if idx then C_EquipmentSet.PickupEquipmentSet(idx) end
+      elseif s.type == "outfit" then
+        local info = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitInfoByName(s.strindex)
+        if info then C_TransmogOutfitInfo.PickupOutfit(info.outfitID) end
+        if not GetCursorInfo() then Warn("Missing outfit: " .. tostring(s.strindex)) end
       elseif s.type == "petaction" or s.type == "futurespell" then
         PickupAction(s.id) -- clear
       end
@@ -221,6 +225,5 @@ function ns.Restore(profile, include)
   if include.bars    then ClearUnusedSlots(profile.slots or {}) end
   if include.bindings then RestoreBindings(profile.binds or {}) end
   if include.petbar  then RestorePetBar(profile.petslots or {}) end
-  -- outfits: equipment sets are account-wide; names in profile just confirm they exist
   ns.Print("Bars restored.")
 end
