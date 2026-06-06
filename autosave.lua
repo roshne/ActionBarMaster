@@ -32,8 +32,8 @@ local function DoAutoSave()
   })
 end
 
-ns:registerEvent("PLAYER_LOGIN", function(self, ...)
-  DoAutoSave()
+ns:registerEvent("PLAYER_ENTERING_WORLD", function(self, isLogin, isReload)
+  if isLogin or isReload then DoAutoSave() end
 end)
 
 ns:registerEvent("PLAYER_LOGOUT", function(self, ...)
