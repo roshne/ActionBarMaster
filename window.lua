@@ -19,11 +19,32 @@ local function CreateWindow()
     position = { Center = {}, Width = WIN_W, Height = WIN_H },
   }
 
+  -- ── Column headers ───────────────────────────────────────────────────────
+  local profilesHeader = ui.Label:new{
+    parent   = f,
+    text     = "Profiles",
+    position = {
+      TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD, -PAD },
+      Width   = LIST_W,
+      Height  = ROW_H,
+    },
+  }
+
+  ui.Label:new{
+    parent   = f,
+    text     = "Contents",
+    position = {
+      TopLeft  = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
+      TopRight = { f.titlebar, ui.edge.BottomRight, -PAD, -PAD },
+      Height   = ROW_H,
+    },
+  }
+
   -- ── Left panel (profile list) ────────────────────────────────────────────
   local listPanel = ui.CleanFrame:new{
     parent   = f,
     position = {
-      TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD, -PAD },
+      TopLeft = { profilesHeader, ui.edge.BottomLeft, 0, -2 },
       Width   = LIST_W,
       Bottom  = { f, ui.edge.Bottom, 0, PAD + BTN_H + PAD + ROW_H + PAD },
     },
@@ -41,7 +62,7 @@ local function CreateWindow()
   local textScroll = ui.ScrollFrame:new{
     parent   = f,
     position = {
-      TopLeft     = { f.titlebar, ui.edge.BottomLeft,  PAD + LIST_W + PAD, -PAD },
+      TopLeft     = { profilesHeader, ui.edge.BottomLeft, LIST_W + PAD, -2 },
       BottomRight = { f, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD + ROW_H + PAD },
     },
   }
