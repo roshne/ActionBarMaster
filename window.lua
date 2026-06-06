@@ -105,6 +105,70 @@ local function CreateWindow()
     checkX = checkX + 110
   end
 
+  -- ── Save dialog (LibNUI, avoids StaticPopup editbox quirks) ─────────────
+  local DLG_W, DLG_H = 280, 120
+  local saveDialog = ui.TitleFrame:new{
+    name     = "WarbandeerBarsRGSSaveDialog",
+    title    = "Save Profile",
+    special  = true,
+    level    = 700,
+    position = { Center = {}, Width = DLG_W, Height = DLG_H, Hide = true },
+  }
+
+  ui.Label:new{
+    parent   = saveDialog,
+    text     = "Profile name:",
+    position = {
+      TopLeft = { saveDialog.titlebar, ui.edge.BottomLeft, PAD, -PAD },
+      Height  = ROW_H,
+      Width   = DLG_W - PAD * 2,
+    },
+  }
+
+  local DoSave  -- forward declaration so nameBox closure can reference it
+  local nameBox = ui.EditBox:new{
+    parent   = saveDialog,
+    position = {
+      TopLeft = { saveDialog.titlebar, ui.edge.BottomLeft, PAD, -(PAD + ROW_H + 4) },
+      Width   = DLG_W - PAD * 2,
+      Height  = ROW_H,
+    },
+    OnEnterPressed  = function(self) DoSave() end,
+    OnEscapePressed = function(self) saveDialog:Hide() end,
+  }
+  saveDialog._nameBox = nameBox
+
+  DoSave = function()
+    local name = nameBox:Text()
+    if name == "" then return end
+    local profile = ns.Capture(ns.settings.include, ns.settings.accountMacros, ns.settings.charMacros)
+    local encoded = ns.Encode(profile)
+    eb:Text(encoded)
+    table.insert(ns.db.profiles, {
+      name = name, char = profile.char, class = profile.class,
+      spec = profile.spec, encoded = encoded,
+    })
+    refreshList()
+    saveDialog:Hide()
+  end
+
+  ui.Button:new{
+    parent   = saveDialog, onClick = DoSave,
+    position = { Right = { saveDialog, ui.edge.Center, -2, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
+  }
+  ui.Label:new{
+    parent   = saveDialog, text = "OK",
+    position = { Right = { saveDialog, ui.edge.Center, -2 + 4, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
+  }
+  ui.Button:new{
+    parent   = saveDialog, onClick = function() saveDialog:Hide() end,
+    position = { Left = { saveDialog, ui.edge.Center, 2, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
+  }
+  ui.Label:new{
+    parent   = saveDialog, text = "Cancel",
+    position = { Left = { saveDialog, ui.edge.Center, 2 + 4, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
+  }
+
   -- ── Bottom buttons ───────────────────────────────────────────────────────
   local btnDefs = {
     {
@@ -135,7 +199,9 @@ local function CreateWindow()
       label = "Save",
       x     = PAD,
       fn    = function()
-        StaticPopup_Show("WBARSRGS_SAVE_NAME")
+        saveDialog:Show()
+        saveDialog._nameBox:Text("")
+        saveDialog._nameBox._widget:SetFocus()
       end,
     },
     {
@@ -200,29 +266,6 @@ local function CreateWindow()
         ns.Restore(f._pendingProfile, ns.settings.include)
         f._pendingProfile = nil
       end
-    end,
-  }
-
-  StaticPopupDialogs["WBARSRGS_SAVE_NAME"] = {
-    text         = "Profile name:",
-    button1      = ACCEPT,
-    button2      = CANCEL,
-    hasEditBox   = true,
-    timeout      = 0,
-    whileDead    = 1,
-    hideOnEscape = 1,
-    OnAccept = function(self)
-      local editBox = self.GetEditBox and self:GetEditBox() or self.editBox
-      local name = editBox:GetText()
-      if name == "" then return end
-      local profile = ns.Capture(ns.settings.include, ns.settings.accountMacros, ns.settings.charMacros)
-      local encoded = ns.Encode(profile)
-      eb:Text(encoded)
-      table.insert(ns.db.profiles, {
-        name = name, char = profile.char, class = profile.class,
-        spec = profile.spec, encoded = encoded,
-      })
-      refreshList()
     end,
   }
 
