@@ -122,20 +122,19 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       elseif s.type == "item" then
         PickupItem(s.index)
         if not GetCursorInfo() and C_ToyBox then
-          -- Blizzard_Collections is lazy-loaded; ensure it's ready before toy pickup
-          if C_AddOns then C_AddOns.LoadAddOn("Blizzard_Collections")
-          elseif LoadAddOn then LoadAddOn("Blizzard_Collections") end
           C_ToyBox.PickupToyBoxItem(s.index)
         end
-        -- fallback: place via the item's associated spell (works for toys in some versions)
+        -- try by link string (some items only respond to this form)
         if not GetCursorInfo() then
-          local _, spellID = GetItemSpell(s.index)
-          if spellID then PickupSpell(spellID) end
+          local link = select(2, GetItemInfo(s.index))
+          if link then PickupItem(link) end
         end
         if not GetCursorInfo() then
           local link = select(2, GetItemInfo(s.index))
           if link then
-            Warn("Missing item " .. link)
+            local owned = C_ToyBox and select(6, C_ToyBox.GetToyInfo(s.index))
+            local suffix = (owned == false) and " (not in Toy Box)" or ""
+            Warn("Missing item " .. link .. suffix)
           else
             pendingItemWarns[s.index] = true
             C_Item.RequestLoadItemDataByID(s.index)
