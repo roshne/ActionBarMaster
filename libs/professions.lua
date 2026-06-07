@@ -1,8 +1,6 @@
 local _, ns = ...
 
-local PickupSpell  = C_Spell and C_Spell.PickupSpell or _G.PickupSpell
-local GetSpellName = C_Spell and C_Spell.GetSpellName
-                  or function(id) return (GetSpellInfo(id)) end
+local PickupSpell = C_Spell and C_Spell.PickupSpell or _G.PickupSpell
 
 ---Returns { [professionName] = ordinal } for current character primary professions.
 ---Used at capture time to match action bar spell names against profession names.

@@ -2,7 +2,6 @@ local _, ns = ...
 
 local PickupSpell   = C_Spell and C_Spell.PickupSpell   or _G.PickupSpell
 local PickupItem    = C_Item  and C_Item.PickupItem      or _G.PickupItem
-local GetSpellName  = C_Spell and C_Spell.GetSpellName  or _G.GetSpellInfo
 local GetSpellLink  = C_Spell and C_Spell.GetSpellLink  or _G.GetSpellLink
 local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _G.PickupSpellBookItem
 
@@ -100,14 +99,6 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         PickupSpell(s.index)
         if not GetCursorInfo() and overrides[s.index] then
           PickupSpell(overrides[s.index])
-        end
-        if not GetCursorInfo() then
-          local name = GetSpellName(s.index)
-          if name then PickupSpell(name) end
-        end
-        if not GetCursorInfo() and FindBaseSpellByID then
-          local base = FindBaseSpellByID(s.index)
-          if base then PickupSpell(base) end
         end
         if not GetCursorInfo() then
           Warn("Unknown spell [" .. s.index .. "] " .. (GetSpellLink(s.index) or ""))
