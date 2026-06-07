@@ -90,7 +90,7 @@ local function FindOrCreateMacro(m)
   return CreateMacro(m.name, icon, m.body, perchar)
 end
 
-local function RestoreSlots(slots, overrides, flyouts)
+local function RestoreSlots(slots, overrides, flyouts, race, class)
   for _, s in ipairs(slots) do
     local ok, err = pcall(function()
       local curType, curIndex = GetActionInfo(s.id)
@@ -132,6 +132,13 @@ local function RestoreSlots(slots, overrides, flyouts)
             pendingItemWarns[s.index] = true
             C_Item.RequestLoadItemDataByID(s.index)
           end
+        end
+      elseif s.type == "racial" then
+        local spells  = ns.GetRacialSpells(race, class)
+        local spellID = spells[s.index]
+        if spellID then PickupSpell(spellID) end
+        if not GetCursorInfo() then
+          Warn("Missing racial #" .. s.index .. " for " .. (race or "?"))
         end
       elseif s.type == "macro" then
         -- handled in RestoreMacros pass; skip here
@@ -250,11 +257,13 @@ function ns.Restore(profile)
     ns.Print("Cannot restore during combat.")
     return
   end
-  local overrides = BuildOverrideMap()
-  local flyouts   = BuildFlyoutMap()
+  local overrides  = BuildOverrideMap()
+  local flyouts    = BuildFlyoutMap()
+  local _, race    = UnitRace("player")
+  local _, class   = UnitClass("player")
 
   RestoreMacrosAndSlots(profile.macros or {}, profile.slots or {})
-  RestoreSlots(profile.slots or {}, overrides, flyouts)
+  RestoreSlots(profile.slots or {}, overrides, flyouts, race, class)
   ClearUnusedSlots(profile.slots or {})
   RestoreBindings(profile.binds or {})
   RestorePetBar(profile.petslots or {})

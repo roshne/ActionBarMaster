@@ -32,7 +32,8 @@ end
 
 -- Capture all non-empty action bar slots.
 -- includeOutfits: when false, slots of type "outfit" are skipped.
-local function CaptureSlots(overrides, includeOutfits)
+-- racialSet: { [spellID] = ordinal } — racial spells are stored as type="racial".
+local function CaptureSlots(overrides, includeOutfits, racialSet)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
@@ -45,7 +46,14 @@ local function CaptureSlots(overrides, includeOutfits)
           if subType == "assistedcombat" then
             entry.index = C_AssistedCombat.GetActionSpell()
           else
-            entry.index = overrides[index] or index
+            local spellID = overrides[index] or index
+            local racialN = racialSet[spellID]
+            if racialN then
+              entry.type  = "racial"
+              entry.index = racialN
+            else
+              entry.index = spellID
+            end
           end
         elseif slotType == "macro" then
           -- subType means it's a temp macro; resolve real index via cursor
@@ -140,9 +148,12 @@ end
 ---@return table profile
 function ns.Capture()
   local overrides = BuildSpellOverrides()
+  local _, race   = UnitRace("player")
+  local _, class  = UnitClass("player")
+  local racialSet = ns.GetRacialSpellSet(race, class)
   local profile = ProfileMeta()
   profile.version  = 1
-  profile.slots    = CaptureSlots(overrides, true)
+  profile.slots    = CaptureSlots(overrides, true, racialSet)
   profile.binds    = CaptureBindings()
   profile.macros   = CaptureMacros()
   profile.petslots = CapturePetBar()

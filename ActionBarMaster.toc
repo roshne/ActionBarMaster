@@ -12,6 +12,7 @@
 
 libs\base64.lua
 libs\crc32.lua
+libs\racials.lua
 init.lua
 capture.lua
 restore.lua
