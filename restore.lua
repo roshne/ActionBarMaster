@@ -122,11 +122,9 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       elseif s.type == "item" then
         PickupItem(s.index)
         if not GetCursorInfo() and C_ToyBox then
-          -- PickupToyBoxItem requires the internal filtered toy list to be built.
-          -- SetCollectedShown forces a filter refresh, which initializes that list.
+          -- Blizzard_Collections is lazy-loaded; ensure it's ready before toy pickup
           if C_AddOns then C_AddOns.LoadAddOn("Blizzard_Collections")
           elseif LoadAddOn then LoadAddOn("Blizzard_Collections") end
-          C_ToyBox.SetCollectedShown(true)
           C_ToyBox.PickupToyBoxItem(s.index)
         end
         -- fallback: place via the item's associated spell (works for toys in some versions)
