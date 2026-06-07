@@ -124,10 +124,17 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() and C_ToyBox then
           C_ToyBox.PickupToyBoxItem(s.index)
         end
+        -- try by link string (some items only respond to this form)
+        if not GetCursorInfo() then
+          local link = select(2, GetItemInfo(s.index))
+          if link then PickupItem(link) end
+        end
         if not GetCursorInfo() then
           local link = select(2, GetItemInfo(s.index))
           if link then
-            Warn("Missing item " .. link)
+            local owned = C_ToyBox and select(6, C_ToyBox.GetToyInfo(s.index))
+            local suffix = (owned == false) and " (not in Toy Box)" or ""
+            Warn("Missing item " .. link .. suffix)
           else
             pendingItemWarns[s.index] = true
             C_Item.RequestLoadItemDataByID(s.index)
