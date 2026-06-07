@@ -1,32 +1,51 @@
 local _, ns = ...
 
--- Detection uses spell name matching rather than spellbook offsets.
--- Enum.SpellBookSpellBank.Profession does not exist; spelloffset from GetProfessionInfo
--- does not reliably map to C_SpellBook indices in 12.x. Name matching is simpler and
--- works regardless of spellbook API changes.
+-- Profession spells live in the Player spellbook (no separate Profession bank exists).
+-- GetProfessionInfo returns spelloffset which is the base index into the Player bank.
+local BANK = Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
 
----Returns { [professionName] = ordinal } for the current character's primary professions.
----Used at capture time to tag matching spells.
-function ns.GetProfessionNameMap()
-  local map = {}
-  if not GetProfessions then return map end
+local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem
+                         or _G.PickupSpellBookItem
+
+local function SpellIDAt(offset)
+  if BANK and C_SpellBook then
+    local _, _, spellID = C_SpellBook.GetSpellBookItemType(offset, BANK)
+    return spellID
+  end
+end
+
+-- Returns { [spellID] = ordinal*1000+pos }, { [ordinal] = name }
+-- ordinal 1/2 = first/second primary profession; pos = 1-based position within its spells.
+function ns.GetProfessionSpellSet()
+  local set   = {}
+  local names = {}
+  if not (GetProfessions and C_SpellBook and BANK) then return set, names end
   local prof1, prof2 = GetProfessions()
   for ordinal, profIdx in ipairs({ prof1, prof2 }) do
     if profIdx then
-      local profName = GetProfessionInfo(profIdx)
-      if profName then map[profName] = ordinal end
+      local profName, _, _, _, numAbilities, spelloffset = GetProfessionInfo(profIdx)
+      names[ordinal] = profName
+      for i = 1, (numAbilities or 0) do
+        local spellID = SpellIDAt(spelloffset + i)
+        if spellID then
+          set[spellID] = ordinal * 1000 + i
+        end
+      end
     end
   end
-  return map
+  return set, names
 end
 
----Picks up the current character's Nth primary profession window spell.
----@param ordinal number  1 or 2
-function ns.PickupProfessionSpell(ordinal)
-  if not GetProfessions then return end
+-- Picks up the profession spell at encoded position onto the cursor.
+-- encoded = ordinal*1000+pos. No-ops if the character lacks that profession or the slot.
+function ns.PickupProfessionSpell(encoded)
+  if not (GetProfessions and PickupSpellBookItem) then return end
+  local ordinal = math.floor(encoded / 1000)
+  local pos     = encoded % 1000
   local prof1, prof2 = GetProfessions()
   local profIdx = (ordinal == 1 and prof1) or (ordinal == 2 and prof2)
   if not profIdx then return end
-  local profName = GetProfessionInfo(profIdx)
-  if profName then PickupSpell(profName) end
+  local _, _, _, _, numAbilities, spelloffset = GetProfessionInfo(profIdx)
+  if not numAbilities or pos > numAbilities then return end
+  PickupSpellBookItem(spelloffset + pos, BANK or "spell")
 end

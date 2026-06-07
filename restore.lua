@@ -153,7 +153,8 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       elseif s.type == "profession" then
         ns.PickupProfessionSpell(s.index)
         if not GetCursorInfo() then
-          Warn("No profession in slot #" .. s.index
+          local ordinal = math.floor(s.index / 1000)
+          Warn("No profession in slot #" .. ordinal
             .. (s.strindex and " [" .. s.strindex .. "]" or ""))
         end
       elseif s.type == "macro" then
