@@ -42,6 +42,8 @@ end
 
 ns.AutoSave = DoAutoSave
 
+ns:registerCommand("sn", nil, function(self) DoAutoSave() end, "Autosave now")
+
 ns:registerEvent("PLAYER_ENTERING_WORLD", function(self, isLogin, isReload)
   if isLogin or isReload then ns:delay(2000, DoAutoSave) end
 end)
