@@ -1,0 +1,9 @@
+Action Bar Master
+Copyright 2026 Nazuraki
+
+This product includes software developed by Boshi Lian (https://github.com/tg123/myslot):
+  - libs/base64.lua — adapted from Myslot, originally by Alex Kloss, WoW port by Boshi Lian
+  - libs/crc32.lua  — adapted from Myslot, originally from CurseForge forums, WoW port by Boshi Lian
+
+The serialization design (binary profile format, slot type system, capture/restore patterns)
+is derived from Myslot by Boshi Lian <farmer1992@gmail.com>, licensed under Apache 2.0.

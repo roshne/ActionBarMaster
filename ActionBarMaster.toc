@@ -3,6 +3,7 @@
 ## Notes: Action bar, keybind, macro, and outfit profiles
 ## Author: Nazuraki
 ## Version: 12.0.5-r0
+## X-License: Apache-2.0
 ## Dependencies: LibNAddOn, LibNUI
 ## SavedVariables: ActionBarMasterDB
 ## X-NUI-UI: LibNUI

@@ -1,6 +1,8 @@
 -- Lua 5.1+ base64 v3.0 (c) 2009 by Alex Kloss <alexthkloss@web.de>
 -- Licensed under the terms of the LGPL2
 -- Modified for WoW by Boshi Lian <farmer1992@gmail.com>
+-- Sourced from Myslot (https://github.com/tg123/myslot)
+-- Modified for Action Bar Master by Nazuraki (namespace adaption)
 
 local _, ns = ...
 ns.base64 = {}

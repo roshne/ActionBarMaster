@@ -1,5 +1,7 @@
 -- CRC32 for WoW. Original from curseforge forums.
 -- Modified by Boshi Lian <farmer1992@gmail.com>
+-- Sourced from Myslot (https://github.com/tg123/myslot), Apache 2.0
+-- Modified for Action Bar Master by Nazuraki (namespace and local variable renames)
 
 local _, ns = ...
 ns.crc32 = {}
