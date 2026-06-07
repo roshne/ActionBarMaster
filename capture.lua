@@ -52,14 +52,15 @@ local function CaptureSlots(overrides, includeOutfits, racialSet, profNameMap)
           else
             local spellID    = overrides[index] or index
             local racialN    = racialSet[spellID]
-            local spellName  = not racialN and GetSpellNameFn(spellID)
-            local profOrdinal = spellName and profNameMap[spellName]
+            local spellName = not racialN and GetSpellNameFn(spellID)
+            local profInfo  = spellName and profNameMap[spellName]
             if racialN then
               entry.type  = "racial"
               entry.index = racialN
-            elseif profOrdinal then
+            elseif profInfo then
               entry.type     = "profession"
-              entry.index    = profOrdinal
+              entry.index    = profInfo.ordinal
+              entry.profSlot = profInfo.slot
               entry.strindex = spellName
             else
               entry.index = spellID

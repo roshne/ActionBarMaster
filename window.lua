@@ -152,34 +152,24 @@ local function CreateWindow()
   }
 
   -- ── Bottom buttons ───────────────────────────────────────────────────────
+  -- Left group: Autosave Now(90) + Save/Load/Delete(60ea) with 4px gaps
+  -- Right group: Export/Import(60ea) separated from left by 20px
+  local LX = { PAD, PAD+114, PAD+114+64, PAD+114+128 }
+  local RX = { PAD+114+128+80, PAD+114+128+80+64 }
+
   local btnDefs = {
     {
-      label = "Export",
-      x     = PAD + LIST_W + PAD,
+      label = "Autosave Now",
+      x     = LX[1],
+      w     = 110,
       fn    = function()
-        local profile = ns.Capture()
-        local encoded = ns.Encode(profile)
-        eb:Text(encoded)
-        eb._widget:HighlightText(0, -1)
-      end,
-    },
-    {
-      label = "Import",
-      x     = PAD + LIST_W + PAD + 90,
-      fn    = function()
-        local text = eb._widget:GetText()
-        local profile, err = ns.Decode(text)
-        if not profile then
-          ns.Print("Import failed: " .. (err or "unknown error"))
-          return
-        end
-        f._pendingProfile = profile
-        StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+        ns.AutoSave()
+        refreshList()
       end,
     },
     {
       label = "Save",
-      x     = PAD,
+      x     = LX[2],
       fn    = function()
         saveDialog:Show()
         saveDialog._nameBox:Text("")
@@ -188,7 +178,7 @@ local function CreateWindow()
     },
     {
       label = "Load",
-      x     = PAD + 64,
+      x     = LX[3],
       fn    = function()
         local i = getSelected()
         if not i then ns.Print("Select a profile first."); return end
@@ -201,7 +191,7 @@ local function CreateWindow()
     },
     {
       label = "Delete",
-      x     = PAD + 128,
+      x     = LX[4],
       fn    = function()
         local i = getSelected()
         if not i then ns.Print("Select a profile first."); return end
@@ -210,29 +200,47 @@ local function CreateWindow()
         StaticPopup_Show("ABM_CONFIRM_DELETE", p.name)
       end,
     },
+    {
+      label = "Export",
+      x     = RX[1],
+      fn    = function()
+        local profile = ns.Capture()
+        local encoded = ns.Encode(profile)
+        eb:Text(encoded)
+        eb._widget:HighlightText(0, -1)
+      end,
+    },
+    {
+      label = "Import",
+      x     = RX[2],
+      fn    = function()
+        local text = eb._widget:GetText()
+        local profile, err = ns.Decode(text)
+        if not profile then
+          ns.Print("Import failed: " .. (err or "unknown error"))
+          return
+        end
+        f._pendingProfile = profile
+        StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+      end,
+    },
   }
 
   for _, def in ipairs(btnDefs) do
-    ui.Button:new{
-      parent  = f,
-      onClick = def.fn,
-      position = {
-        Left   = { f, ui.edge.Left,   def.x, 0   },
-        Bottom = { f, ui.edge.Bottom, 0,     PAD  },
-        Width  = 60,
-        Height = BTN_H,
-      },
-    }
-    ui.Label:new{
+    local btn = ui.Button:new{
       parent   = f,
-      text     = def.label,
+      template = "UIPanelButtonTemplate",
+      glow     = false,
+      onClick  = def.fn,
       position = {
-        Left   = { f, ui.edge.Left,   def.x + 4, 0   },
-        Bottom = { f, ui.edge.Bottom, 0,          PAD },
-        Width  = 60,
+        Left   = { f, ui.edge.Left,   def.x, 0  },
+        Bottom = { f, ui.edge.Bottom, 0,     PAD },
+        Width  = def.w or 60,
         Height = BTN_H,
       },
     }
+    btn:Text(def.label)
+    btn:TextAlign("CENTER")
   end
 
   -- StaticPopup callbacks reference f and eb via upvalue closure

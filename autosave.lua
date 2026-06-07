@@ -40,12 +40,10 @@ local function DoAutoSave()
   table.insert(profiles, 1, entry)
 end
 
+ns.AutoSave = DoAutoSave
+
 ns:registerEvent("PLAYER_ENTERING_WORLD", function(self, isLogin, isReload)
   if isLogin or isReload then ns:delay(2000, DoAutoSave) end
-end)
-
-ns:registerEvent("PLAYER_LOGOUT", function(self, ...)
-  DoAutoSave()
 end)
 
 -- Delay slightly on spec change to let the new spec fully settle

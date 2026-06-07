@@ -139,7 +139,7 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           Warn("Missing racial #" .. s.index .. " for " .. (race or "?"))
         end
       elseif s.type == "profession" then
-        ns.PickupProfessionSpell(s.index)
+        ns.PickupProfessionSpell(s.index, s.profSlot, s.strindex)
         if not GetCursorInfo() then
           Warn("No profession in slot #" .. s.index
             .. (s.strindex and " [" .. s.strindex .. "]" or ""))
