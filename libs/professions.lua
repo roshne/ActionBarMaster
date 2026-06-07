@@ -1,5 +1,7 @@
 local _, ns = ...
 
+local PickupSpell = C_Spell and C_Spell.PickupSpell or _G.PickupSpell
+
 -- Detection uses spell name matching rather than spellbook offsets.
 -- Enum.SpellBookSpellBank.Profession does not exist; spelloffset from GetProfessionInfo
 -- does not reliably map to C_SpellBook indices in 12.x. Name matching is simpler and
