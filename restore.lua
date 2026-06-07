@@ -140,6 +140,14 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() then
           Warn("Missing racial #" .. s.index .. " for " .. (race or "?"))
         end
+      elseif s.type == "profession" then
+        local spellID = ns.GetProfessionSpell(s.index)
+        if spellID then PickupSpell(spellID) end
+        if not GetCursorInfo() then
+          local ordinal = math.floor(s.index / 1000)
+          Warn("No profession in slot #" .. ordinal
+            .. (s.strindex and " [" .. s.strindex .. "]" or ""))
+        end
       elseif s.type == "macro" then
         -- handled in RestoreMacros pass; skip here
         return
