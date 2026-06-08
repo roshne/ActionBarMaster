@@ -12,6 +12,24 @@ local TXTDLG_W = 420
 
 local window = nil
 
+local function savePosition(f)
+  local x = f._widget:GetLeft() - UIParent:GetLeft()
+  local y = f._widget:GetTop()  - UIParent:GetTop()
+  f._widget:ClearAllPoints()
+  f:TopLeft(UIParent, ui.edge.TopLeft, x, y)
+  ns.db.windowPos = { x = x, y = y }
+end
+
+local function restorePosition(f)
+  local pos = ns.db.windowPos
+  if pos then
+    f._widget:ClearAllPoints()
+    f:TopLeft(UIParent, ui.edge.TopLeft, pos.x, pos.y)
+  else
+    savePosition(f)  -- freeze computed center into TOPLEFT anchor on first run
+  end
+end
+
 local function CreateWindow()
   local f = ui.TitleFrame:new{
     name     = "ActionBarMasterWindow",
@@ -20,6 +38,12 @@ local function CreateWindow()
     level    = 600,
     position = { Center = {-75, 150}, Width = WIN_W, Height = WIN_H },
   }
+
+  f.titlebar:SetScript("OnMouseUp", function()
+    f._widget:StopMovingOrSizing()
+    savePosition(f)
+  end)
+  restorePosition(f)
 
   -- ── Column headers ───────────────────────────────────────────────────────
   local profilesHeader = ui.Label:new{
