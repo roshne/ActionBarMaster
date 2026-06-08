@@ -10,9 +10,9 @@ local NCOLS         = 12
 local NBARS         = 15
 local NUM_PET_SLOTS = 10
 local CHK_SZ        = 20
-local CHK_X         = 6
+local CHK_X         = 4
 local CHK_Y         = -math.floor((CELL - CHK_SZ) / 2)
-local CHK_W         = CHK_X + CHK_SZ + 4
+local CHK_W         = CHK_X + CHK_SZ + 2
 local GRID_X        = CHK_W + GAP
 
 -- Display order: { abm = ABM bar number, label = WoW bar name }
