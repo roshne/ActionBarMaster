@@ -1,8 +1,8 @@
 local _, ns = ...
 local ui = ns.ui
 
-local WIN_W    = 720
-local WIN_H    = 520
+local WIN_W    = 864
+local WIN_H    = 624
 local LIST_W   = 240
 local FILTER_W = 130
 local PAD      = 8

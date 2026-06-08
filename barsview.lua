@@ -2,7 +2,7 @@ local _, ns = ...
 local ui   = ns.ui
 local rgba = ns.Colors.rgba
 
-local CELL          = 34
+local CELL          = 46
 local LABEL_W       = 24
 local GAP           = 2
 local HDR_H         = 18
@@ -205,6 +205,10 @@ function ns.BuildBarsGrid(parent)
           position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
         }
 
+        local labelParent = rowF
+        local labelOffX   = x + 2
+        local labelOffY   = -1
+
         local entry = slotMap[bar] and slotMap[bar][col]
         if entry then
           local icon = getIcon(entry, macros)
@@ -218,8 +222,17 @@ function ns.BuildBarsGrid(parent)
               position = { TopLeft = { cellBtn, ui.edge.TopLeft, 1, -1 }, Width = CELL - 2, Height = CELL - 2 },
             }
             addTooltip(cellBtn, entry, macros)
+            labelParent = cellBtn
+            labelOffX   = 4
+            labelOffY   = -4
           end
         end
+
+        ui.Label:new{
+          parent = labelParent, text = tostring((bar - 1) * NCOLS + col), justifyH = "LEFT",
+          fontObj = "GameFontHighlightSmall",
+          position = { TopLeft = { labelParent, ui.edge.TopLeft, labelOffX, labelOffY }, Width = 20, Height = 10 },
+        }
       end
     end
 
