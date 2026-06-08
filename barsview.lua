@@ -20,7 +20,7 @@ local function getIcon(entry, macros)
   if t == "spell" or t == "racial" then
     return spellTex(entry.index)
   elseif t == "profession" then
-    local spellID = ns.GetProfessionSpellID(entry.index, entry.profSlot)
+    local spellID = entry.profSlot and ns.GetProfessionSpellID(entry.index, entry.profSlot)
     if not spellID and entry.strindex then
       local info = ns.GetProfessionNameMap()[entry.strindex]
       if info then spellID = ns.GetProfessionSpellID(info.ordinal, info.slot) end
@@ -71,7 +71,7 @@ local function addTooltip(btn, entry, macros)
     if t == "spell" or t == "racial" then
       GameTooltip:SetSpellByID(entry.index)
     elseif t == "profession" then
-      local sid = ns.GetProfessionSpellID(entry.index, entry.profSlot)
+      local sid = entry.profSlot and ns.GetProfessionSpellID(entry.index, entry.profSlot)
       if not sid and entry.strindex then
         local info = ns.GetProfessionNameMap()[entry.strindex]
         if info then sid = ns.GetProfessionSpellID(info.ordinal, info.slot) end

@@ -3,7 +3,7 @@ local _, ns = ...
 local base64 = ns.base64
 local crc32  = ns.crc32
 
-local VERSION = 1
+local VERSION = 2
 
 -- ── Packer ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +44,7 @@ local function Pack(profile)
     str8(s.type)
     int24(s.index    or 0)
     str8(s.strindex or "")
+    byte(s.profSlot  or 0)
   end
 
   -- bindings
@@ -87,7 +88,7 @@ end
 
 -- ── Unpacker ──────────────────────────────────────────────────────────────────
 
-local function Unpack(buf)
+local function Unpack(buf, ver)
   local pos = 1
 
   local function byte()
@@ -123,7 +124,11 @@ local function Unpack(buf)
   profile.slots = {}
   for _ = 1, nSlots do
     local s = { id = byte(), type = str8(), index = int24(), strindex = str8() }
-    if s.index   == 0 then s.index    = nil end
+    if ver >= 2 then
+      local ps = byte()
+      if ps > 0 then s.profSlot = ps end
+    end
+    if s.index    == 0  then s.index    = nil end
     if s.strindex == "" then s.strindex = nil end
     profile.slots[#profile.slots+1] = s
   end
@@ -209,7 +214,7 @@ function ns.Decode(text)
   if #frame < 5 then return nil, "Text too short" end
 
   local ver = frame[1]
-  if ver ~= VERSION then return nil, "Unsupported version: " .. ver end
+  if ver < 1 or ver > VERSION then return nil, "Unsupported version: " .. ver end
 
   -- verify crc
   local stored = bit.bor(
@@ -231,7 +236,7 @@ function ns.Decode(text)
   local payload = {}
   for i = 6, #frame do payload[#payload+1] = frame[i] end
 
-  local ok, result = pcall(Unpack, payload)
+  local ok, result = pcall(Unpack, payload, ver)
   if not ok then return nil, "Decode error: " .. tostring(result) end
   return result
 end
