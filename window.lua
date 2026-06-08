@@ -211,7 +211,8 @@ local function CreateWindow()
       local profile, err = ns.Decode(impBox._widget:GetText())
       if not profile then ns.Print("Import failed: " .. (err or "?")); return end
       impDlg:Hide()
-      f._pendingProfile = profile
+      f._pendingProfile   = profile
+      f._pendingBarFilter = nil
       StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
     end,
     position = { Right = { impDlg, ui.edge.Center, -2, 0 }, Bottom = { impDlg, ui.edge.Bottom, 0, PAD }, Width = 80, Height = BTN_H },
@@ -251,7 +252,8 @@ local function CreateWindow()
         local p = ns.db.profiles[i]
         local profile, err = ns.Decode(p.encoded or "")
         if not profile then ns.Print("Load failed: " .. (err or "?")); return end
-        f._pendingProfile = profile
+        f._pendingProfile   = profile
+        f._pendingBarFilter = f._barsGrid.GetChecked()
         StaticPopup_Show("ABM_CONFIRM_IMPORT", p.name)
       end,
     },
@@ -321,8 +323,9 @@ local function CreateWindow()
     timeout = 0, whileDead = 1, hideOnEscape = 1,
     OnAccept = function(self)
       if f._pendingProfile then
-        ns.Restore(f._pendingProfile)
-        f._pendingProfile = nil
+        ns.Restore(f._pendingProfile, f._pendingBarFilter)
+        f._pendingProfile   = nil
+        f._pendingBarFilter = nil
       end
     end,
   }

@@ -2,13 +2,37 @@ local _, ns = ...
 local ui   = ns.ui
 local rgba = ns.Colors.rgba
 
-local CELL          = 46
-local LABEL_W       = 24
+local CELL          = 38
+local LABEL_W       = 56
 local GAP           = 2
 local HDR_H         = 18
 local NCOLS         = 12
 local NBARS         = 15
 local NUM_PET_SLOTS = 10
+local CHK_SZ        = 20
+local CHK_X         = 6
+local CHK_Y         = -math.floor((CELL - CHK_SZ) / 2)
+local CHK_W         = CHK_X + CHK_SZ + 4
+local GRID_X        = CHK_W + GAP
+
+-- Display order: { abm = ABM bar number, label = WoW bar name }
+local BAR_ORDER = {
+  { abm = 1,  label = "1"        },
+  { abm = 6,  label = "2"        },
+  { abm = 5,  label = "3"        },
+  { abm = 3,  label = "4"        },
+  { abm = 4,  label = "5"        },
+  { abm = 13, label = "6"        },
+  { abm = 14, label = "7"        },
+  { abm = 15, label = "8"        },
+  { abm = 2,  label = "Bonus"    },
+  { abm = 7,  label = "Class 1"  },
+  { abm = 8,  label = "Class 2"  },
+  { abm = 9,  label = "Class 3"  },
+  { abm = 10, label = "Class 4"  },
+  { abm = 12, label = "Class 5"  },
+  { abm = 11, label = "Skyriding" },
+}
 
 local function spellTex(id)
   if C_Spell and C_Spell.GetSpellTexture then return C_Spell.GetSpellTexture(id) end
@@ -119,11 +143,10 @@ local function addPetTooltip(btn, entry)
 end
 
 ---Build a scrollable action-bar icon grid inside `parent`.
----Row per bar 1–maxBar (numbered on left), column per slot ordinal (1–12 across top).
----@return { Update: fun(profile: table?) }
+---Rows follow WoW bar order (BAR_ORDER); only non-empty bars are shown.
+---@return { Update: fun(profile: table?), GetChecked: fun(): table }
 function ns.BuildBarsGrid(parent)
-  -- totalW = 24 + 2 + 12*34 + 11*2 = 456
-  local totalW = LABEL_W + GAP + NCOLS * CELL + (NCOLS - 1) * GAP
+  local totalW = GRID_X + LABEL_W + GAP + NCOLS * CELL + (NCOLS - 1) * GAP
 
   -- column headers pinned above the scroll area, always visible
   local hdrF = ui.Frame:new{
@@ -131,7 +154,7 @@ function ns.BuildBarsGrid(parent)
     position = { TopLeft = { parent, ui.edge.TopLeft, 0, 0 }, Width = totalW, Height = HDR_H },
   }
   for col = 1, NCOLS do
-    local x = LABEL_W + GAP + (col - 1) * (CELL + GAP)
+    local x = GRID_X + LABEL_W + GAP + (col - 1) * (CELL + GAP)
     ui.Label:new{
       parent = hdrF, text = tostring(col), justifyH = "CENTER",
       position = { TopLeft = { hdrF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = HDR_H },
@@ -153,6 +176,11 @@ function ns.BuildBarsGrid(parent)
   scroll:Child(content)
 
   local rowFrames = {}
+  local checked   = {}  -- [abmBar|"pet"] = bool; nil means default (checked)
+
+  local function isChecked(key)
+    return checked[key] ~= false
+  end
 
   local function Update(profile)
     for _, fr in ipairs(rowFrames) do fr:Hide() end
@@ -165,7 +193,6 @@ function ns.BuildBarsGrid(parent)
 
     local macros  = profile.macros or {}
     local slotMap = {}
-    local maxBar  = 0
 
     for _, entry in ipairs(profile.slots) do
       local bar = math.floor((entry.id - 1) / NCOLS) + 1
@@ -173,75 +200,82 @@ function ns.BuildBarsGrid(parent)
       if bar >= 1 and bar <= NBARS then
         if not slotMap[bar] then slotMap[bar] = {} end
         slotMap[bar][col] = entry
-        if bar > maxBar then maxBar = bar end
       end
     end
 
-    -- show bars 1–maxBar as sub-frames so the scroll frame handles them correctly;
-    -- empty bars between filled ones still get a row so the layout is contiguous
-    for bar = 1, maxBar do
-      local y = (bar - 1) * (CELL + GAP)
+    local totalRows = 0
 
-      local rowF = ui.Frame:new{
-        parent   = content,
-        position = {
-          TopLeft = { content, ui.edge.TopLeft, 0, -y },
-          Width   = totalW,
-          Height  = CELL,
-        },
-      }
-      rowFrames[#rowFrames + 1] = rowF
+    for _, barDef in ipairs(BAR_ORDER) do
+      local y = totalRows * (CELL + GAP)
 
-      ui.Label:new{
-        parent = rowF, text = tostring(bar), justifyH = "RIGHT",
-        position = { TopLeft = { rowF, ui.edge.TopLeft, 0, 0 }, Width = LABEL_W, Height = CELL },
-      }
-
-      for col = 1, NCOLS do
-        local x = LABEL_W + GAP + (col - 1) * (CELL + GAP)
-
-        ui.Texture:new{
-          parent = rowF, color = rgba(255, 255, 255, 0.05),
-          position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
+        local rowF = ui.Frame:new{
+          parent   = content,
+          position = {
+            TopLeft = { content, ui.edge.TopLeft, 0, -y },
+            Width   = totalW,
+            Height  = CELL,
+          },
         }
+        rowFrames[#rowFrames + 1] = rowF
 
-        local labelParent = rowF
-        local labelOffX   = x + 2
-        local labelOffY   = -1
-
-        local entry = slotMap[bar] and slotMap[bar][col]
-        if entry then
-          local icon = getIcon(entry, macros)
-          if icon then
-            local cellBtn = ui.Button:new{
-              parent = rowF, template = "", glow = false,
-              position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
-            }
-            ui.Texture:new{
-              parent = cellBtn, path = icon,
-              position = { TopLeft = { cellBtn, ui.edge.TopLeft, 1, -1 }, Width = CELL - 2, Height = CELL - 2 },
-            }
-            addTooltip(cellBtn, entry, macros)
-            labelParent = cellBtn
-            labelOffX   = 4
-            labelOffY   = -4
-          end
-        end
+        local barKey = barDef.abm
+        local chk = ui.CheckButton:new{
+          parent   = rowF,
+          position = { TopLeft = { rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
+          OnToggle = function(self) checked[barKey] = self:Checked() end,
+        }
+        chk:Checked(isChecked(barKey))
 
         ui.Label:new{
-          parent = labelParent, text = tostring((bar - 1) * NCOLS + col), justifyH = "LEFT",
+          parent = rowF, text = barDef.label, justifyH = "RIGHT",
           fontObj = "GameFontHighlightSmall",
-          position = { TopLeft = { labelParent, ui.edge.TopLeft, labelOffX, labelOffY }, Width = 20, Height = 10 },
+          position = { TopLeft = { rowF, ui.edge.TopLeft, GRID_X, 0 }, Width = LABEL_W, Height = CELL },
         }
-      end
-    end
 
-    local totalRows = maxBar
+        for col = 1, NCOLS do
+          local x = GRID_X + LABEL_W + GAP + (col - 1) * (CELL + GAP)
+
+          ui.Texture:new{
+            parent = rowF, color = rgba(255, 255, 255, 0.05),
+            position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
+          }
+
+          local labelParent = rowF
+          local labelOffX   = x + 2
+          local labelOffY   = -1
+
+          local entry = slotMap[barDef.abm] and slotMap[barDef.abm][col]
+          if entry then
+            local icon = getIcon(entry, macros)
+            if icon then
+              local cellBtn = ui.Button:new{
+                parent = rowF, template = "", glow = false,
+                position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
+              }
+              ui.Texture:new{
+                parent = cellBtn, path = icon,
+                position = { TopLeft = { cellBtn, ui.edge.TopLeft, 1, -1 }, Width = CELL - 2, Height = CELL - 2 },
+              }
+              addTooltip(cellBtn, entry, macros)
+              labelParent = cellBtn
+              labelOffX   = 4
+              labelOffY   = -4
+            end
+          end
+
+          ui.Label:new{
+            parent = labelParent, text = tostring(entry and entry.id or ""), justifyH = "LEFT",
+            fontObj = "GameFontHighlightSmall",
+            position = { TopLeft = { labelParent, ui.edge.TopLeft, labelOffX, labelOffY }, Width = 20, Height = 10 },
+          }
+        end
+
+      totalRows = totalRows + 1
+    end
 
     local petslots = profile.petslots
     if petslots and #petslots > 0 then
-      totalRows = totalRows + 1
-      local y = maxBar * (CELL + GAP)
+      local y = totalRows * (CELL + GAP)
 
       local rowF = ui.Frame:new{
         parent   = content,
@@ -253,16 +287,24 @@ function ns.BuildBarsGrid(parent)
       }
       rowFrames[#rowFrames + 1] = rowF
 
+      local petChk = ui.CheckButton:new{
+        parent   = rowF,
+        position = { TopLeft = { rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
+        OnToggle = function(self) checked.pet = self:Checked() end,
+      }
+      petChk:Checked(isChecked("pet"))
+
       ui.Label:new{
-        parent = rowF, text = "Pet", justifyH = "RIGHT",
-        position = { TopLeft = { rowF, ui.edge.TopLeft, 0, 0 }, Width = LABEL_W, Height = CELL },
+        parent = rowF, text = "Pet Bar", justifyH = "RIGHT",
+        fontObj = "GameFontHighlightSmall",
+        position = { TopLeft = { rowF, ui.edge.TopLeft, GRID_X, 0 }, Width = LABEL_W, Height = CELL },
       }
 
       local petMap = {}
       for _, entry in ipairs(petslots) do petMap[entry.id] = entry end
 
       for col = 1, NUM_PET_SLOTS do
-        local x = LABEL_W + GAP + (col - 1) * (CELL + GAP)
+        local x = GRID_X + LABEL_W + GAP + (col - 1) * (CELL + GAP)
 
         ui.Texture:new{
           parent = rowF, color = rgba(255, 255, 255, 0.05),
@@ -285,10 +327,12 @@ function ns.BuildBarsGrid(parent)
           end
         end
       end
+
+      totalRows = totalRows + 1
     end
 
     content:Height(math.max(totalRows * (CELL + GAP), 1))
   end
 
-  return { Update = Update }
+  return { Update = Update, GetChecked = function() return checked end }
 end
