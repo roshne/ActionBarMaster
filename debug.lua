@@ -63,20 +63,24 @@ end
 local function DebugFlyouts()
   local lines = { "=== Flyout Debug ===" }
 
-  -- Section 1: spellbook flyouts
+  -- Section 1: spellbook flyouts (deduplicated by flyout ID)
   lines[#lines+1] = "-- Spellbook flyouts --"
-  local bookFlyouts = {}
+  local bookFlyouts = {}   -- id -> name
+  local flyoutBarSlots = {} -- id -> {barSlot, ...}
+  local seen = {}
   if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines then
     for lineIdx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
       local info = C_SpellBook.GetSpellBookSkillLineInfo(lineIdx)
       for i = 1, info.numSpellBookItems do
         local si = info.itemIndexOffset + i
         local typ, id = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
-        if typ == Enum.SpellBookItemType.Flyout then
+        if typ == Enum.SpellBookItemType.Flyout and not seen[id] then
+          seen[id] = true
           local name, _, numSlots, isKnown = GetFlyoutInfo(id)
           bookFlyouts[id] = name or "?"
           local barSlots = C_ActionBar and C_ActionBar.FindFlyoutActionButtons
                        and C_ActionBar.FindFlyoutActionButtons(id) or {}
+          flyoutBarSlots[id] = barSlots
           local slotStr = #barSlots > 0 and table.concat(barSlots, ",") or "none"
           lines[#lines+1] = string.format("  id=%d  name=%s  slots=%d  known=%s  onBars={%s}",
             id, name or "?", numSlots or 0, tostring(isKnown), slotStr)
@@ -87,19 +91,37 @@ local function DebugFlyouts()
     lines[#lines+1] = "  C_SpellBook unavailable"
   end
 
-  -- Section 2: bar slots reporting as flyout
-  lines[#lines+1] = "-- Bar slots with type=flyout --"
+  -- Section 2: bar slots reporting as flyout via GetActionInfo
+  lines[#lines+1] = "-- Bar slots with type=flyout (GetActionInfo) --"
+  local actionFlyoutSlots = {}
   local found = false
   for i = 1, MAX_BARS do
     local t, id = GetActionInfo(i)
     if t == "flyout" then
-      local name = bookFlyouts[id] or "?"
+      actionFlyoutSlots[i] = id
       lines[#lines+1] = string.format("  barSlot=%d  flyoutID=%s  name=%s",
-        i, tostring(id), name)
+        i, tostring(id), bookFlyouts[id] or "?")
       found = true
     end
   end
   if not found then lines[#lines+1] = "  (none)" end
+
+  -- Section 3: mismatch — slots FindFlyoutActionButtons says have a flyout
+  -- but GetActionInfo disagrees
+  lines[#lines+1] = "-- Mismatch: FindFlyoutActionButtons vs GetActionInfo --"
+  local anyMismatch = false
+  for id, barSlots in pairs(flyoutBarSlots) do
+    for _, slot in ipairs(barSlots) do
+      if actionFlyoutSlots[slot] ~= id then
+        local t, aid = GetActionInfo(slot)
+        lines[#lines+1] = string.format(
+          "  slot=%d  expected flyoutID=%d (%s)  GetActionInfo=(%s,%s)",
+          slot, id, bookFlyouts[id] or "?", tostring(t), tostring(aid))
+        anyMismatch = true
+      end
+    end
+  end
+  if not anyMismatch then lines[#lines+1] = "  (none)" end
 
   lines[#lines+1] = "=== End ==="
   ShowDebugOutput(table.concat(lines, "\n"))
