@@ -65,8 +65,10 @@ local function getIcon(entry, macros)
   elseif t == "flyout" then
     local _, _, numSlots = GetFlyoutInfo(entry.index)
     if numSlots and numSlots > 0 then
-      local spellID = GetFlyoutSlotInfo(entry.index, 1)
-      if spellID and spellID > 0 then return spellTex(spellID) end
+      for i = 1, numSlots do
+        local spellID, _, isKnown = GetFlyoutSlotInfo(entry.index, i)
+        if spellID and spellID > 0 and isKnown then return spellTex(spellID) end
+      end
     end
   elseif t == "item" then
     return GetItemIcon(entry.index)
