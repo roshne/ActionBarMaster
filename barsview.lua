@@ -39,16 +39,21 @@ local function spellTex(id)
   return GetSpellTexture(id)
 end
 
+local function profSpellID(entry)
+  local id = entry.profSlot and ns.GetProfessionSpellID(entry.index, entry.profSlot)
+  if not id and entry.strindex then
+    local info = ns.GetProfessionNameMap()[entry.strindex]
+    if info then id = ns.GetProfessionSpellID(info.ordinal, info.slot) end
+  end
+  return id
+end
+
 local function getIcon(entry, macros)
   local t = entry.type
   if t == "spell" or t == "racial" then
     return spellTex(entry.index)
   elseif t == "profession" then
-    local spellID = entry.profSlot and ns.GetProfessionSpellID(entry.index, entry.profSlot)
-    if not spellID and entry.strindex then
-      local info = ns.GetProfessionNameMap()[entry.strindex]
-      if info then spellID = ns.GetProfessionSpellID(info.ordinal, info.slot) end
-    end
+    local spellID = profSpellID(entry)
     if spellID then return spellTex(spellID) end
   elseif t == "macro" then
     for _, m in ipairs(macros) do
@@ -107,11 +112,7 @@ local function addTooltip(btn, entry, macros)
     if t == "spell" or t == "racial" then
       GameTooltip:SetSpellByID(entry.index)
     elseif t == "profession" then
-      local sid = entry.profSlot and ns.GetProfessionSpellID(entry.index, entry.profSlot)
-      if not sid and entry.strindex then
-        local info = ns.GetProfessionNameMap()[entry.strindex]
-        if info then sid = ns.GetProfessionSpellID(info.ordinal, info.slot) end
-      end
+      local sid = profSpellID(entry)
       if sid then GameTooltip:SetSpellByID(sid)
       else GameTooltip:AddLine(entry.strindex or "?", 1, 1, 1) end
     elseif t == "macro" then
@@ -162,7 +163,7 @@ local function addPetTooltip(btn, entry)
 end
 
 ---Build a scrollable action-bar icon grid inside `parent`.
----Rows follow WoW bar order (BAR_ORDER); only non-empty bars are shown.
+---Rows follow WoW bar order (BAR_ORDER); all 15 bars are always shown.
 ---@return { Update: fun(profile: table?), GetChecked: fun(): table }
 function ns.BuildBarsGrid(parent)
   local totalW = GRID_X + LABEL_W + GAP + NCOLS * CELL + (NCOLS - 1) * GAP

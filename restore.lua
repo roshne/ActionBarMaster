@@ -41,50 +41,34 @@ ns:registerEvent("GET_ITEM_INFO_RECEIVED", function(self, itemID, success)
   end
 end)
 
--- Override map: bidirectional (base <-> override).
--- New profiles store base IDs, but old profiles captured in shapeshift form may store
--- override IDs (e.g. Bear Swipe 213771). Both directions let PickupSpell find a working ID.
-local function BuildOverrideMap()
-  local map = {}
-  if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return map end
+-- Build override map (bidirectional base <-> override) and flyout map
+-- (flyoutId -> {spellIndex, bank}) in a single spellbook pass.
+-- Override map lets PickupSpell find a working ID for old profiles that stored
+-- override IDs (e.g. Bear Swipe 213771 captured in shapeshift form).
+local function BuildSpellbookMaps()
+  local overrides, flyouts = {}, {}
+  if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return overrides, flyouts end
   for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
     local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
     for i = 1, info.numSpellBookItems do
-      local spellIndex = info.itemIndexOffset + i
-      local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(spellIndex, Enum.SpellBookSpellBank.Player)
+      local si = info.itemIndexOffset + i
+      local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
       if spellId then
         local ovr = C_Spell.GetOverrideSpell(spellId)
-        if ovr ~= spellId then map[spellId] = ovr; map[ovr] = spellId end
+        if ovr ~= spellId then overrides[spellId] = ovr; overrides[ovr] = spellId end
       elseif spellType == Enum.SpellBookItemType.Flyout then
         local _, _, numSlots, isKnown = GetFlyoutInfo(id)
         if isKnown and numSlots > 0 then
           for k = 1, numSlots do
             local sid, ovr = GetFlyoutSlotInfo(id, k)
-            if ovr ~= sid then map[sid] = ovr; map[ovr] = sid end
+            if ovr ~= sid then overrides[sid] = ovr; overrides[ovr] = sid end
           end
         end
+        if not flyouts[id] then flyouts[id] = { si, Enum.SpellBookSpellBank.Player } end
       end
     end
   end
-  return map
-end
-
--- Flyout map: flyoutId -> {spellIndex, bank}
-local function BuildFlyoutMap()
-  local map = {}
-  if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines then
-    for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
-      local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
-      for i = 1, info.numSpellBookItems do
-        local si = info.itemIndexOffset + i
-        local typ, id = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
-        if typ == Enum.SpellBookItemType.Flyout and not map[id] then
-          map[id] = { si, Enum.SpellBookSpellBank.Player }
-        end
-      end
-    end
-  end
-  return map
+  return overrides, flyouts
 end
 
 -- Find or create a macro by name+body; returns macro index or nil
@@ -100,7 +84,12 @@ local function FindOrCreateMacro(m)
   local numG, numC = GetNumMacros()
   local isChar = m.id > MAX_ACCOUNT_MACROS
   local canG, canC = numG < MAX_ACCOUNT_MACROS, numC < MAX_CHARACTER_MACROS
-  local perchar = isChar and canC or (canG and false or canC)
+  local perchar
+  if isChar then
+    perchar = canC
+  else
+    perchar = not canG and canC
+  end
   if not canG and not canC then
     Warn("No macro space for: " .. m.name)
     return nil
@@ -108,6 +97,12 @@ local function FindOrCreateMacro(m)
   local icon = m.icon
   if strsub(m.body, 1, 12) == "#showtooltip" then icon = "INV_Misc_QuestionMark" end
   return CreateMacro(m.name, icon, m.body, perchar)
+end
+
+local function slotLabel(id)
+  local bar = math.floor((id - 1) / 12) + 1
+  local col = ((id - 1) % 12) + 1
+  return "bar " .. bar .. " slot " .. col .. ": "
 end
 
 -- Flyout slots must be restored first, before any other PickupSpell/PlaceAction calls
@@ -118,9 +113,7 @@ local function RestoreFlyouts(slots, flyouts)
     if s.type == "flyout" then
       local curType, curIndex = GetActionInfo(s.id)
       if not (curType == "flyout" and curIndex == s.index) then
-        local bar = math.floor((s.id - 1) / 12) + 1
-        local col = ((s.id - 1) % 12) + 1
-        local slot = "bar " .. bar .. " slot " .. col .. ": "
+        local slot = slotLabel(s.id)
         local f = flyouts[s.index]
         if f then
           ClearCursor()
@@ -141,9 +134,7 @@ end
 
 local function RestoreSlots(slots, overrides, flyouts, race, class)
   for _, s in ipairs(slots) do
-    local bar  = math.floor((s.id - 1) / 12) + 1
-    local col  = ((s.id - 1) % 12) + 1
-    local slot = "bar " .. bar .. " slot " .. col .. ": "
+    local slot = slotLabel(s.id)
     local ok, err = pcall(function()
       local curType, curIndex = GetActionInfo(s.id)
       if curType == s.type and curIndex == (s.index or s.strindex) then return end
@@ -320,8 +311,7 @@ function ns.Restore(profile, barFilter)
     ns.Print("Cannot restore during combat.")
     return
   end
-  local overrides = BuildOverrideMap()
-  local flyouts   = BuildFlyoutMap()
+  local overrides, flyouts = BuildSpellbookMaps()
   local _, race   = UnitRace("player")
   local _, class  = UnitClass("player")
 
