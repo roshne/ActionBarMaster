@@ -50,6 +50,7 @@ function ns.BuildClassFilter(parent, position, onSelect)
     name     = "ActionBarMasterClassFilter",
     parent   = parent,
     level    = 650,
+    strata   = "DIALOG",  -- must match catcher strata so level ordering applies
     special  = true,
     position = {
       TopLeft  = { triggerBtn, ui.edge.BottomLeft,  0, 0 },
@@ -59,11 +60,13 @@ function ns.BuildClassFilter(parent, position, onSelect)
     },
   }
 
-  -- Transparent full-screen catcher; closes the menu on any click outside it
+  -- Transparent full-screen catcher; closes the menu on any click outside it.
+  -- Must use the same strata as the menu so that frame-level ordering determines priority:
+  -- catcher sits at (menu.level - 1), menu items sit at (menu.level + 1), so items win.
   local catcher = CreateFrame("Frame", nil, UIParent)
   catcher:SetAllPoints(UIParent)
   catcher:SetFrameStrata("DIALOG")
-  catcher:SetFrameLevel(1)
+  catcher:SetFrameLevel(menu._widget:GetFrameLevel() - 1)
   catcher:EnableMouse(true)
   catcher:Hide()
   catcher:SetScript("OnMouseDown", function()
