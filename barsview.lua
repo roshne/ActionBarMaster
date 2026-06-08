@@ -62,6 +62,12 @@ local function getIcon(entry, macros)
         return ic
       end
     end
+  elseif t == "flyout" then
+    local _, _, numSlots = GetFlyoutInfo(entry.index)
+    if numSlots and numSlots > 0 then
+      local spellID = GetFlyoutSlotInfo(entry.index, 1)
+      if spellID and spellID > 0 then return spellTex(spellID) end
+    end
   elseif t == "item" then
     return GetItemIcon(entry.index)
   elseif t == "summonmount" then
@@ -74,6 +80,10 @@ local function getIcon(entry, macros)
       local _, icon = C_EquipmentSet.GetEquipmentSetInfo(setID)
       return icon
     end
+  elseif t == "outfit" then
+    local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
+    local info = outfits and outfits[entry.index]
+    return info and info.icon
   end
 end
 
@@ -108,6 +118,9 @@ local function addTooltip(btn, entry, macros)
           GameTooltip:AddLine(m.name or "?", 1, 1, 1); break
         end
       end
+    elseif t == "flyout" then
+      local name = GetFlyoutInfo(entry.index)
+      GameTooltip:AddLine(name or "Flyout", 1, 1, 1)
     elseif t == "item" then
       GameTooltip:SetHyperlink("item:" .. entry.index)
     elseif t == "summonmount" then
@@ -118,6 +131,10 @@ local function addTooltip(btn, entry, macros)
       local setID = ids and ids[entry.index]
       local name = setID and C_EquipmentSet.GetEquipmentSetInfo(setID) or "Equipment Set"
       GameTooltip:AddLine(name, 1, 1, 1)
+    elseif t == "outfit" then
+      local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
+      local info = outfits and outfits[entry.index]
+      GameTooltip:AddLine(info and info.name or "Outfit", 1, 1, 1)
     end
     GameTooltip:Show()
   end)
