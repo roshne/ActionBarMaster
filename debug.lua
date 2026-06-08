@@ -1,6 +1,8 @@
 local _, ns = ...
 local ui = ns.ui
 
+local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _G.PickupSpellBookItem
+
 local MAX_BARS = 180
 local DLG_W, DLG_H = 500, 400
 local PAD, BTN_H = 8, 22
