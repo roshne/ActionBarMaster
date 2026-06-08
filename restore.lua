@@ -136,10 +136,23 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       elseif s.type == "flyout" then
         local f = flyouts[s.index]
         if f then PickupSpellBookItem(f[1], f[2]) end
-        -- only warn if the flyout exists in this character's spellbook but still failed
+        -- PickupSpellBookItem silently fails for flyout-type items when called outside
+        -- a hardware drag event; fall back to cloning from any existing bar slot.
+        if not GetCursorInfo() and C_ActionBar and C_ActionBar.FindFlyoutActionButtons then
+          local existing = C_ActionBar.FindFlyoutActionButtons(s.index)
+          for _, barSlot in ipairs(existing or {}) do
+            local t, id = GetActionInfo(barSlot)
+            if t == "flyout" and id == s.index and barSlot ~= s.id then
+              PickupAction(barSlot)
+              break
+            end
+          end
+        end
+        -- flyout pickup only works inside WoW drag events; warn and let user place manually
         if not GetCursorInfo() and f then
           local name = GetFlyoutInfo and GetFlyoutInfo(s.index)
-          Warn(slot .. "Unknown flyout " .. (name and "[" .. name .. "]" or "[" .. s.index .. "]"))
+          Warn(slot .. "drag " .. (name and "[" .. name .. "]" or "flyout " .. s.index)
+            .. " from your spellbook to restore it")
         end
       elseif s.type == "item" then
         PickupItem(s.index)
