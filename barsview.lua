@@ -10,9 +10,9 @@ local NCOLS         = 12
 local NBARS         = 15
 local NUM_PET_SLOTS = 10
 local CHK_SZ        = 20
-local CHK_X         = 6
+local CHK_X         = 4
 local CHK_Y         = -math.floor((CELL - CHK_SZ) / 2)
-local CHK_W         = CHK_X + CHK_SZ + 4
+local CHK_W         = CHK_X + CHK_SZ + 2
 local GRID_X        = CHK_W + GAP
 
 -- Display order: { abm = ABM bar number, label = WoW bar name }
@@ -261,6 +261,7 @@ function ns.BuildBarsGrid(parent)
           local labelOffX   = x + 2
           local labelOffY   = -1
 
+          local slotID = (barDef.abm - 1) * NCOLS + col
           local entry = slotMap[barDef.abm] and slotMap[barDef.abm][col]
           if entry then
             local icon = getIcon(entry, macros)
@@ -281,7 +282,7 @@ function ns.BuildBarsGrid(parent)
           end
 
           ui.Label:new{
-            parent = labelParent, text = tostring(entry and entry.id or ""), justifyH = "LEFT",
+            parent = labelParent, text = tostring(slotID), justifyH = "LEFT",
             fontObj = "GameFontHighlightSmall",
             position = { TopLeft = { labelParent, ui.edge.TopLeft, labelOffX, labelOffY }, Width = 20, Height = 10 },
           }
