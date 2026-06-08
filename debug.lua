@@ -167,8 +167,33 @@ local function DebugFlyoutRestore()
   ShowDebugOutput(table.concat(lines, "\n"))
 end
 
+-- /bars debug capture
+-- Shows all flyout and spell entries from ns.Capture() so we can see
+-- exactly what a profile would contain for flyout-related slots.
+local function DebugCapture()
+  local lines = { "=== Capture Debug ===" }
+  local profile = ns.Capture()
+  local flyoutCount = 0
+  for _, s in ipairs(profile.slots or {}) do
+    if s.type == "flyout" then
+      local bar = math.floor((s.id - 1) / 12) + 1
+      local col = ((s.id - 1) % 12) + 1
+      local name = GetFlyoutInfo and GetFlyoutInfo(s.index) or "?"
+      lines[#lines+1] = string.format("  bar=%d col=%d  slotID=%d  type=flyout  id=%d  name=%s",
+        bar, col, s.id, s.index, name or "?")
+      flyoutCount = flyoutCount + 1
+    end
+  end
+  if flyoutCount == 0 then lines[#lines+1] = "  (no flyout entries captured)" end
+  lines[#lines+1] = "=== End ==="
+  ShowDebugOutput(table.concat(lines, "\n"))
+end
+
 ns:registerCommand("debug", "flyouts", function() DebugFlyouts() end,
   "Dump flyout spellbook and bar-slot state for debugging")
 
 ns:registerCommand("debug", "flyoutrestore", function() DebugFlyoutRestore() end,
   "Test PickupSpellBookItem for each flyout and show cursor state")
+
+ns:registerCommand("debug", "capture", function() DebugCapture() end,
+  "Show flyout entries from a live Capture() to verify what gets stored")
