@@ -127,5 +127,46 @@ local function DebugFlyouts()
   ShowDebugOutput(table.concat(lines, "\n"))
 end
 
+-- /abm debug flyout-restore
+-- Tests the restore pickup path for every flyout in the spellbook.
+-- Calls PickupSpellBookItem for each, shows what GetCursorInfo returns, then clears.
+local function DebugFlyoutRestore()
+  local lines = { "=== Flyout Restore Debug ===" }
+
+  if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then
+    lines[#lines+1] = "C_SpellBook unavailable"
+    ShowDebugOutput(table.concat(lines, "\n"))
+    return
+  end
+
+  local seen = {}
+  for lineIdx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+    local info = C_SpellBook.GetSpellBookSkillLineInfo(lineIdx)
+    for i = 1, info.numSpellBookItems do
+      local si = info.itemIndexOffset + i
+      local typ, flyoutID = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+      if typ == Enum.SpellBookItemType.Flyout and not seen[flyoutID] then
+        seen[flyoutID] = true
+        local name = GetFlyoutInfo(flyoutID) or "?"
+
+        ClearCursor()
+        PickupSpellBookItem(si, Enum.SpellBookSpellBank.Player)
+        local ct, ca, cb = GetCursorInfo()
+        ClearCursor()
+
+        lines[#lines+1] = string.format(
+          "  flyoutID=%d  name=%s  bookIdx=%d  cursor=(%s,%s,%s)",
+          flyoutID, name, si, tostring(ct), tostring(ca), tostring(cb))
+      end
+    end
+  end
+
+  lines[#lines+1] = "=== End ==="
+  ShowDebugOutput(table.concat(lines, "\n"))
+end
+
 ns:registerCommand("debug", "flyouts", function() DebugFlyouts() end,
   "Dump flyout spellbook and bar-slot state for debugging")
+
+ns:registerCommand("debug", "flyout-restore", function() DebugFlyoutRestore() end,
+  "Test PickupSpellBookItem for each flyout and show cursor state")
