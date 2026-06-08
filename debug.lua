@@ -189,6 +189,69 @@ local function DebugCapture()
   ShowDebugOutput(table.concat(lines, "\n"))
 end
 
+-- /bars debug flyoutplace
+-- Tests whether PickupSpellBookItem + PlaceAction actually sticks for flyouts.
+-- Uses slot 180 (last slot, unlikely to be in use) as the test target.
+-- Saves and restores whatever was in that slot before the test.
+local TEST_SLOT = 180
+local function DebugFlyoutPlace()
+  local lines = { "=== Flyout Place Test (slot " .. TEST_SLOT .. ") ===" }
+
+  local prevType, prevIndex = GetActionInfo(TEST_SLOT)
+  lines[#lines+1] = string.format("  before: GetActionInfo=(%s,%s)", tostring(prevType), tostring(prevIndex))
+
+  -- find Summon Demon (flyout id=10) in spellbook
+  local bookIdx, bank
+  if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines then
+    local done = false
+    for lineIdx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+      if done then break end
+      local info = C_SpellBook.GetSpellBookSkillLineInfo(lineIdx)
+      for i = 1, info.numSpellBookItems do
+        local si = info.itemIndexOffset + i
+        local typ, id = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+        if typ == Enum.SpellBookItemType.Flyout and id == 10 then
+          bookIdx = si; bank = Enum.SpellBookSpellBank.Player; done = true; break
+        end
+      end
+    end
+  end
+
+  if not bookIdx then
+    lines[#lines+1] = "  Summon Demon (id=10) not found in spellbook"
+    ShowDebugOutput(table.concat(lines, "\n"))
+    return
+  end
+  lines[#lines+1] = string.format("  found flyout id=10 at bookIdx=%d", bookIdx)
+
+  ClearCursor()
+  PickupSpellBookItem(bookIdx, bank)
+  local ct, ca = GetCursorInfo()
+  lines[#lines+1] = string.format("  after pickup: cursor=(%s,%s)", tostring(ct), tostring(ca))
+
+  if GetCursorInfo() then
+    PlaceAction(TEST_SLOT)
+    ClearCursor()
+    local afterType, afterIndex = GetActionInfo(TEST_SLOT)
+    lines[#lines+1] = string.format("  after PlaceAction: GetActionInfo=(%s,%s)", tostring(afterType), tostring(afterIndex))
+    -- restore previous slot content
+    if prevType then
+      PickupAction(TEST_SLOT)
+      PlaceAction(TEST_SLOT)
+      ClearCursor()
+    else
+      PickupAction(TEST_SLOT)
+      ClearCursor()
+    end
+    lines[#lines+1] = "  slot restored"
+  else
+    lines[#lines+1] = "  pickup failed — cursor empty, PlaceAction not attempted"
+  end
+
+  lines[#lines+1] = "=== End ==="
+  ShowDebugOutput(table.concat(lines, "\n"))
+end
+
 ns:registerCommand("debug", "flyouts", function() DebugFlyouts() end,
   "Dump flyout spellbook and bar-slot state for debugging")
 
@@ -197,3 +260,6 @@ ns:registerCommand("debug", "flyoutrestore", function() DebugFlyoutRestore() end
 
 ns:registerCommand("debug", "capture", function() DebugCapture() end,
   "Show flyout entries from a live Capture() to verify what gets stored")
+
+ns:registerCommand("debug", "flyoutplace", function() DebugFlyoutPlace() end,
+  "Test PickupSpellBookItem + PlaceAction for Summon Demon on slot 180")
