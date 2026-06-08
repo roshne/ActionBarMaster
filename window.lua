@@ -1,13 +1,14 @@
 local _, ns = ...
 local ui = ns.ui
 
-local WIN_W   = 720
-local WIN_H   = 520
-local LIST_W  = 240
+local WIN_W    = 720
+local WIN_H    = 520
+local LIST_W   = 240
 local FILTER_W = 130
-local PAD     = 8
-local ROW_H   = 22
-local BTN_H   = 22
+local PAD      = 8
+local ROW_H    = 22
+local BTN_H    = 22
+local TXTDLG_W = 420
 
 local window = nil
 
@@ -31,16 +32,6 @@ local function CreateWindow()
     },
   }
 
-  ui.Label:new{
-    parent   = f,
-    text     = "Contents",
-    position = {
-      TopLeft  = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD + FILTER_W + PAD, -PAD },
-      TopRight = { f.titlebar, ui.edge.BottomRight, -PAD, -PAD },
-      Height   = ROW_H,
-    },
-  }
-
   -- ── Left panel (profile list) ────────────────────────────────────────────
   local listPanel = ui.CleanFrame:new{
     parent   = f,
@@ -53,7 +44,10 @@ local function CreateWindow()
 
   local function OnSelect(i)
     local p = ns.db.profiles[i]
-    if p then f._textbox:Text(p.encoded or "") end
+    if not p then f._barsGrid.Update(nil); return end
+    local profile, err = ns.Decode(p.encoded or "")
+    if err then ns.Print("Decode error: " .. err) end
+    f._barsGrid.Update(profile)
   end
 
   local _, refreshList, getSelected, setSelected, setClassFilter = ns.BuildProfileList(listPanel, OnSelect)
@@ -65,29 +59,17 @@ local function CreateWindow()
     Height  = ROW_H,
   }, function(key) setClassFilter(key) end)
 
-  -- ── Right panel (text area) ──────────────────────────────────────────────
-  local textScroll = ui.ScrollFrame:new{
+  -- ── Right panel (bars icon grid) ─────────────────────────────────────────
+  local barsPanel = ui.Frame:new{
     parent   = f,
     position = {
       TopLeft     = { profilesHeader, ui.edge.BottomLeft, LIST_W + PAD, -2 },
       BottomRight = { f, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD + ROW_H + PAD },
     },
   }
+  f._barsGrid = ns.BuildBarsGrid(barsPanel)
 
-  local textW = WIN_W - LIST_W - PAD * 3 - 20
-  local eb = ui.EditBox:new{
-    parent    = textScroll,
-    multiline = true,
-    template  = "",
-    fontObj   = GameFontHighlightSmall,
-    position  = { Width = textW },
-    OnEscapePressed = function(self) f:Hide() end,
-    OnMouseUp       = function(self) self._widget:HighlightText(0, -1) end,
-  }
-  textScroll:Child(eb)
-  f._textbox = eb
-
-  -- ── Save dialog (LibNUI, avoids StaticPopup editbox quirks) ─────────────
+  -- ── Save dialog ──────────────────────────────────────────────────────────
   local DLG_W, DLG_H = 280, 120
   local saveDialog = ui.TitleFrame:new{
     name     = "ActionBarMasterSaveDialog",
@@ -107,7 +89,7 @@ local function CreateWindow()
     },
   }
 
-  local DoSave  -- forward declaration so nameBox closure can reference it
+  local DoSave
   local nameBox = ui.EditBox:new{
     parent   = saveDialog,
     position = {
@@ -125,7 +107,6 @@ local function CreateWindow()
     if name == "" then return end
     local profile = ns.Capture()
     local encoded = ns.Encode(profile)
-    eb:Text(encoded)
     table.insert(ns.db.profiles, {
       name = name, char = profile.char, class = profile.class,
       spec = profile.spec, encoded = encoded,
@@ -135,51 +116,112 @@ local function CreateWindow()
   end
 
   ui.Button:new{
-    parent   = saveDialog, onClick = DoSave,
+    parent = saveDialog, onClick = DoSave,
     position = { Right = { saveDialog, ui.edge.Center, -2, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
   ui.Label:new{
-    parent   = saveDialog, text = "OK",
+    parent = saveDialog, text = "OK",
     position = { Right = { saveDialog, ui.edge.Center, -2 + 4, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
   ui.Button:new{
-    parent   = saveDialog, onClick = function() saveDialog:Hide() end,
+    parent = saveDialog, onClick = function() saveDialog:Hide() end,
     position = { Left = { saveDialog, ui.edge.Center, 2, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
   ui.Label:new{
-    parent   = saveDialog, text = "Cancel",
+    parent = saveDialog, text = "Cancel",
     position = { Left = { saveDialog, ui.edge.Center, 2 + 4, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
 
+  -- ── Export dialog ────────────────────────────────────────────────────────
+  local expDlg = ui.TitleFrame:new{
+    name = "ActionBarMasterExportDlg", title = "Export",
+    special = true, level = 700,
+    position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
+  }
+  local expScroll = ui.ScrollFrame:new{
+    parent = expDlg,
+    position = {
+      TopLeft     = { expDlg.titlebar, ui.edge.BottomLeft, PAD, -PAD },
+      BottomRight = { expDlg, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
+    },
+  }
+  local expBox = ui.EditBox:new{
+    parent = expScroll, multiline = true, template = "",
+    fontObj = GameFontHighlightSmall,
+    position  = { Width = TXTDLG_W - PAD * 2 - 20 },
+    OnEscapePressed = function() expDlg:Hide() end,
+    OnMouseUp       = function(self) self._widget:HighlightText(0, -1) end,
+  }
+  expScroll:Child(expBox)
+  local expClose = ui.Button:new{
+    parent = expDlg, template = "UIPanelButtonTemplate", glow = false,
+    onClick  = function() expDlg:Hide() end,
+    position = { Left = { expDlg, ui.edge.Center, -40, 0 }, Bottom = { expDlg, ui.edge.Bottom, 0, PAD }, Width = 80, Height = BTN_H },
+  }
+  expClose:Text("Close")
+  expClose:TextAlign("CENTER")
+
+  -- ── Import dialog ────────────────────────────────────────────────────────
+  local impDlg = ui.TitleFrame:new{
+    name = "ActionBarMasterImportDlg", title = "Import",
+    special = true, level = 700,
+    position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
+  }
+  local impScroll = ui.ScrollFrame:new{
+    parent = impDlg,
+    position = {
+      TopLeft     = { impDlg.titlebar, ui.edge.BottomLeft, PAD, -PAD },
+      BottomRight = { impDlg, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
+    },
+  }
+  local impBox = ui.EditBox:new{
+    parent = impScroll, multiline = true, template = "",
+    fontObj   = GameFontHighlightSmall,
+    position  = { Width = TXTDLG_W - PAD * 2 - 20 },
+    OnEscapePressed = function() impDlg:Hide() end,
+  }
+  impScroll:Child(impBox)
+  local impBtn = ui.Button:new{
+    parent = impDlg, template = "UIPanelButtonTemplate", glow = false,
+    onClick = function()
+      local profile, err = ns.Decode(impBox._widget:GetText())
+      if not profile then ns.Print("Import failed: " .. (err or "?")); return end
+      impDlg:Hide()
+      f._pendingProfile = profile
+      StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+    end,
+    position = { Right = { impDlg, ui.edge.Center, -2, 0 }, Bottom = { impDlg, ui.edge.Bottom, 0, PAD }, Width = 80, Height = BTN_H },
+  }
+  impBtn:Text("Import")
+  impBtn:TextAlign("CENTER")
+  local impClose = ui.Button:new{
+    parent = impDlg, template = "UIPanelButtonTemplate", glow = false,
+    onClick  = function() impDlg:Hide() end,
+    position = { Left = { impDlg, ui.edge.Center, 2, 0 }, Bottom = { impDlg, ui.edge.Bottom, 0, PAD }, Width = 80, Height = BTN_H },
+  }
+  impClose:Text("Close")
+  impClose:TextAlign("CENTER")
+
   -- ── Bottom buttons ───────────────────────────────────────────────────────
-  -- Left group: Autosave Now(90) + Save/Load/Delete(60ea) with 4px gaps
-  -- Right group: Export/Import(60ea) separated from left by 20px
   local LX = { PAD, PAD+114, PAD+114+64, PAD+114+128 }
   local RX = { PAD+114+128+80, PAD+114+128+80+64 }
 
   local btnDefs = {
     {
-      label = "Autosave Now",
-      x     = LX[1],
-      w     = 110,
-      fn    = function()
-        ns.AutoSave()
-        refreshList()
-      end,
+      label = "Autosave Now", x = LX[1], w = 110,
+      fn = function() ns.AutoSave(); refreshList() end,
     },
     {
-      label = "Save",
-      x     = LX[2],
-      fn    = function()
+      label = "Save", x = LX[2],
+      fn = function()
         saveDialog:Show()
         saveDialog._nameBox:Text("")
         saveDialog._nameBox._widget:SetFocus()
       end,
     },
     {
-      label = "Load",
-      x     = LX[3],
-      fn    = function()
+      label = "Load", x = LX[3],
+      fn = function()
         local i = getSelected()
         if not i then ns.Print("Select a profile first."); return end
         local p = ns.db.profiles[i]
@@ -190,38 +232,29 @@ local function CreateWindow()
       end,
     },
     {
-      label = "Delete",
-      x     = LX[4],
-      fn    = function()
+      label = "Delete", x = LX[4],
+      fn = function()
         local i = getSelected()
         if not i then ns.Print("Select a profile first."); return end
-        local p = ns.db.profiles[i]
         f._pendingDelete = i
-        StaticPopup_Show("ABM_CONFIRM_DELETE", p.name)
+        StaticPopup_Show("ABM_CONFIRM_DELETE", ns.db.profiles[i].name)
       end,
     },
     {
-      label = "Export",
-      x     = RX[1],
-      fn    = function()
-        local profile = ns.Capture()
-        local encoded = ns.Encode(profile)
-        eb:Text(encoded)
-        eb._widget:HighlightText(0, -1)
+      label = "Export", x = RX[1],
+      fn = function()
+        local encoded = ns.Encode(ns.Capture())
+        expBox:Text(encoded)
+        expBox._widget:HighlightText(0, -1)
+        expDlg:Show()
       end,
     },
     {
-      label = "Import",
-      x     = RX[2],
-      fn    = function()
-        local text = eb._widget:GetText()
-        local profile, err = ns.Decode(text)
-        if not profile then
-          ns.Print("Import failed: " .. (err or "unknown error"))
-          return
-        end
-        f._pendingProfile = profile
-        StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+      label = "Import", x = RX[2],
+      fn = function()
+        impBox:Text("")
+        impDlg:Show()
+        impBox._widget:SetFocus()
       end,
     },
   }
@@ -243,36 +276,25 @@ local function CreateWindow()
     btn:TextAlign("CENTER")
   end
 
-  -- StaticPopup callbacks reference f and eb via upvalue closure
   StaticPopupDialogs["ABM_CONFIRM_DELETE"] = {
-    text         = "Delete '%s'?",
-    button1      = DELETE,
-    button2      = CANCEL,
-    timeout      = 0,
-    whileDead    = 1,
-    hideOnEscape = 1,
+    text = "Delete '%s'?", button1 = DELETE, button2 = CANCEL,
+    timeout = 0, whileDead = 1, hideOnEscape = 1,
     OnAccept = function(self)
       local i = f._pendingDelete
       if i and ns.db.profiles[i] then
         table.remove(ns.db.profiles, i)
         setSelected(nil)
         refreshList()
-        eb:Text("")
+        f._barsGrid.Update(nil)
       end
       f._pendingDelete = nil
     end,
-    OnCancel = function(self)
-      f._pendingDelete = nil
-    end,
+    OnCancel = function(self) f._pendingDelete = nil end,
   }
 
   StaticPopupDialogs["ABM_CONFIRM_IMPORT"] = {
-    text         = "Restore bars from '%s'?",
-    button1      = ACCEPT,
-    button2      = CANCEL,
-    timeout      = 0,
-    whileDead    = 1,
-    hideOnEscape = 1,
+    text = "Restore bars from '%s'?", button1 = ACCEPT, button2 = CANCEL,
+    timeout = 0, whileDead = 1, hideOnEscape = 1,
     OnAccept = function(self)
       if f._pendingProfile then
         ns.Restore(f._pendingProfile)

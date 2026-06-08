@@ -22,4 +22,5 @@ serialize.lua
 autosave.lua
 profilelist.lua
 classfilter.lua
+barsview.lua
 window.lua
