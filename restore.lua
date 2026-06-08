@@ -7,6 +7,23 @@ local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _
 
 local MAX_BARS = 180
 
+-- PickupSpell fails for some valid spells (e.g. form-specific druid abilities).
+-- Fall back to picking up by spellbook index, which works regardless of current form.
+local function PickupSpellFromBook(targetSid)
+  if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return end
+  for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+    local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
+    for i = 1, info.numSpellBookItems do
+      local si = info.itemIndexOffset + i
+      local _, _, sid = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+      if sid == targetSid then
+        PickupSpellBookItem(si, Enum.SpellBookSpellBank.Player)
+        return
+      end
+    end
+  end
+end
+
 local function Warn(msg)
   ns.Print("|cffff9900[Bars]|r " .. msg)
 end
@@ -15,14 +32,17 @@ local pendingItemWarns = {}
 
 ns:registerEvent("GET_ITEM_INFO_RECEIVED", function(self, itemID, success)
   if pendingItemWarns[itemID] then
+    local tag = pendingItemWarns[itemID]
     pendingItemWarns[itemID] = nil
     local link = success and select(2, GetItemInfo(itemID))
                or ("|Hitem:" .. itemID .. "|h[item:" .. itemID .. "]|h")
-    Warn("Missing item " .. link)
+    Warn(tag .. "Missing item " .. link)
   end
 end)
 
--- Override map: base spellId -> override spellId (reverse of capture direction)
+-- Override map: bidirectional (base <-> override).
+-- New profiles store base IDs, but old profiles captured in shapeshift form may store
+-- override IDs (e.g. Bear Swipe 213771). Both directions let PickupSpell find a working ID.
 local function BuildOverrideMap()
   local map = {}
   if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return map end
@@ -33,13 +53,13 @@ local function BuildOverrideMap()
       local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(spellIndex, Enum.SpellBookSpellBank.Player)
       if spellId then
         local ovr = C_Spell.GetOverrideSpell(spellId)
-        if ovr ~= spellId then map[spellId] = ovr end
+        if ovr ~= spellId then map[spellId] = ovr; map[ovr] = spellId end
       elseif spellType == Enum.SpellBookItemType.Flyout then
         local _, _, numSlots, isKnown = GetFlyoutInfo(id)
         if isKnown and numSlots > 0 then
           for k = 1, numSlots do
             local sid, ovr = GetFlyoutSlotInfo(id, k)
-            if ovr ~= sid then map[sid] = ovr end
+            if ovr ~= sid then map[sid] = ovr; map[ovr] = sid end
           end
         end
       end
@@ -91,6 +111,9 @@ end
 
 local function RestoreSlots(slots, overrides, flyouts, race, class)
   for _, s in ipairs(slots) do
+    local bar  = math.floor((s.id - 1) / 12) + 1
+    local col  = ((s.id - 1) % 12) + 1
+    local slot = "bar " .. bar .. " slot " .. col .. ": "
     local ok, err = pcall(function()
       local curType, curIndex = GetActionInfo(s.id)
       if curType == s.type and curIndex == (s.index or s.strindex) then return end
@@ -101,14 +124,17 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           PickupSpell(overrides[s.index])
         end
         if not GetCursorInfo() then
-          Warn("Unknown spell [" .. s.index .. "] " .. (GetSpellLink(s.index) or ""))
+          PickupSpellFromBook(s.index)
+        end
+        if not GetCursorInfo() then
+          Warn(slot .. "Unknown spell [" .. s.index .. "] " .. (GetSpellLink(s.index) or ""))
         end
       elseif s.type == "flyout" then
         local f = flyouts[s.index]
         if f then PickupSpellBookItem(f[1], f[2]) end
         if not GetCursorInfo() then
           local name = GetFlyoutInfo and GetFlyoutInfo(s.index)
-          Warn("Unknown flyout " .. (name and "[" .. name .. "]" or "[" .. s.index .. "]"))
+          Warn(slot .. "Unknown flyout " .. (name and "[" .. name .. "]" or "[" .. s.index .. "]"))
         end
       elseif s.type == "item" then
         PickupItem(s.index)
@@ -125,9 +151,9 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           if link then
             local owned = C_ToyBox and select(6, C_ToyBox.GetToyInfo(s.index))
             local suffix = (owned == false) and " (not in Toy Box)" or ""
-            Warn("Missing item " .. link .. suffix)
+            Warn(slot .. "Missing item " .. link .. suffix)
           else
-            pendingItemWarns[s.index] = true
+            pendingItemWarns[s.index] = slot
             C_Item.RequestLoadItemDataByID(s.index)
           end
         end
@@ -136,12 +162,12 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         local spellID = spells[s.index]
         if spellID then PickupSpell(spellID) end
         if not GetCursorInfo() then
-          Warn("Missing racial #" .. s.index .. " for " .. (race or "?"))
+          Warn(slot .. "Missing racial #" .. s.index .. " for " .. (race or "?"))
         end
       elseif s.type == "profession" then
         ns.PickupProfessionSpell(s.index, s.profSlot, s.strindex)
         if not GetCursorInfo() then
-          Warn("No profession in slot #" .. s.index
+          Warn(slot .. "No profession in slot #" .. s.index
             .. (s.strindex and " [" .. s.strindex .. "]" or ""))
         end
       elseif s.type == "macro" then
@@ -150,13 +176,13 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       elseif s.type == "summonpet" then
         C_PetJournal.PickupPet(s.strindex, false)
         if not GetCursorInfo() then C_PetJournal.PickupPet(s.strindex, true) end
-        if not GetCursorInfo() then Warn("Missing pet [" .. tostring(s.strindex) .. "]") end
+        if not GetCursorInfo() then Warn(slot .. "Missing pet [" .. tostring(s.strindex) .. "]") end
       elseif s.type == "summonmount" then
         local mi
         if C_MountJournal then
           for i = 1, C_MountJournal.GetNumMounts() do
-            local _, _, _, _, _, _, _, _, _, _, col, mid = C_MountJournal.GetDisplayedMountInfo(i)
-            if col and mid == s.index then mi = i; break end
+            local _, _, _, _, _, _, _, _, _, _, mountCol, mid = C_MountJournal.GetDisplayedMountInfo(i)
+            if mountCol and mid == s.index then mi = i; break end
           end
         end
         if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
@@ -165,14 +191,14 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           local setIDs = C_EquipmentSet.GetEquipmentSetIDs()
           local setID  = setIDs and setIDs[s.index]
           if setID then C_EquipmentSet.PickupEquipmentSet(setID) end
-          if not GetCursorInfo() then Warn("Missing equipment set #" .. tostring(s.index)) end
+          if not GetCursorInfo() then Warn(slot .. "Missing equipment set #" .. tostring(s.index)) end
         end
       elseif s.type == "outfit" then
         if C_TransmogOutfitInfo then
           local outfits = C_TransmogOutfitInfo.GetOutfitsInfo()
           local info    = outfits and outfits[s.index]
           if info then C_TransmogOutfitInfo.PickupOutfit(info.outfitID) end
-          if not GetCursorInfo() then Warn("Missing outfit #" .. tostring(s.index)) end
+          if not GetCursorInfo() then Warn(slot .. "Missing outfit #" .. tostring(s.index)) end
         end
       elseif s.type == "petaction" or s.type == "futurespell" then
         PickupAction(s.id) -- clear
@@ -185,7 +211,7 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       end
       ClearCursor()
     end)
-    if not ok then Warn("Slot error [" .. s.id .. "]: " .. tostring(err)) end
+    if not ok then Warn(slot .. "Slot error: " .. tostring(err)) end
   end
 end
 

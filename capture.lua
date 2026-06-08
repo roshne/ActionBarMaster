@@ -4,6 +4,8 @@ local MAX_BARS   = 180
 local MAX_MACROS = MAX_ACCOUNT_MACROS + MAX_CHARACTER_MACROS
 
 -- Spell overrides: override spellId -> base spellId
+-- GetActionInfo may return an override ID (e.g. Bear Swipe 213771 when captured in form).
+-- Map override -> base so CaptureSlots always stores the base spell ID.
 local function BuildSpellOverrides()
   local map = {}
   if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return map end
@@ -14,8 +16,8 @@ local function BuildSpellOverrides()
       local spellIndex = info.itemIndexOffset + i
       local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(spellIndex, Enum.SpellBookSpellBank.Player)
       if spellId then
-        local base = C_Spell.GetOverrideSpell(spellId)
-        if base ~= spellId then map[spellId] = base end
+        local ovr = C_Spell.GetOverrideSpell(spellId)
+        if ovr ~= spellId then map[ovr] = spellId end  -- override -> base
       elseif spellType == Enum.SpellBookItemType.Flyout then
         local _, _, numSlots, isKnown = GetFlyoutInfo(id)
         if isKnown and numSlots > 0 then
