@@ -228,8 +228,15 @@ local function CreateWindow()
   impClose:TextAlign("CENTER")
 
   -- ── Bottom buttons ───────────────────────────────────────────────────────
-  local LX = { PAD, PAD+114, PAD+114+64, PAD+114+128 }
-  local RX = { PAD+114+128+80, PAD+114+128+80+64 }
+  local W1, W2, BSEP, GSEP = 110, 60, 4, 20  -- wide btn, std btn, btn gap, group gap
+  local lx1 = PAD
+  local lx2 = lx1 + W1 + BSEP
+  local lx3 = lx2 + W2 + BSEP
+  local lx4 = lx3 + W2 + BSEP
+  local rx1 = lx4 + W2 + GSEP
+  local rx2 = rx1 + W2 + BSEP
+  local LX = { lx1, lx2, lx3, lx4 }
+  local RX = { rx1, rx2 }
 
   local btnDefs = {
     {
