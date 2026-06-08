@@ -24,3 +24,4 @@ profilelist.lua
 classfilter.lua
 barsview.lua
 window.lua
+debug.lua
