@@ -261,6 +261,7 @@ function ns.BuildBarsGrid(parent)
           local labelOffX   = x + 2
           local labelOffY   = -1
 
+          local slotID = (barDef.abm - 1) * NCOLS + col
           local entry = slotMap[barDef.abm] and slotMap[barDef.abm][col]
           if entry then
             local icon = getIcon(entry, macros)
@@ -281,7 +282,7 @@ function ns.BuildBarsGrid(parent)
           end
 
           ui.Label:new{
-            parent = labelParent, text = tostring(entry and entry.id or ""), justifyH = "LEFT",
+            parent = labelParent, text = tostring(slotID), justifyH = "LEFT",
             fontObj = "GameFontHighlightSmall",
             position = { TopLeft = { labelParent, ui.edge.TopLeft, labelOffX, labelOffY }, Width = 20, Height = 10 },
           }
