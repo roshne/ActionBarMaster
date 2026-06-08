@@ -287,33 +287,52 @@ local function RestorePetBar(petslots)
   end
 end
 
-local function ClearUnusedSlots(slots)
+local function ClearUnusedSlots(slots, barFilter)
   local used = {}
   for _, s in ipairs(slots) do used[s.id] = true end
   for i = 1, MAX_BARS do
     if not used[i] and GetActionInfo(i) then
-      PickupAction(i)
-      ClearCursor()
+      local bar = math.floor((i - 1) / 12) + 1
+      if not barFilter or barFilter[bar] ~= false then
+        PickupAction(i)
+        ClearCursor()
+      end
     end
   end
 end
 
 ---Apply a profile to the current character.
 ---@param profile table
-function ns.Restore(profile)
+---@param barFilter table? optional map of bar numbers (and "pet") to bool; nil/true = restore, false = skip
+function ns.Restore(profile, barFilter)
   if InCombatLockdown() then
     ns.Print("Cannot restore during combat.")
     return
   end
-  local overrides  = BuildOverrideMap()
-  local flyouts    = BuildFlyoutMap()
-  local _, race    = UnitRace("player")
-  local _, class   = UnitClass("player")
+  local overrides = BuildOverrideMap()
+  local flyouts   = BuildFlyoutMap()
+  local _, race   = UnitRace("player")
+  local _, class  = UnitClass("player")
 
-  RestoreMacrosAndSlots(profile.macros or {}, profile.slots or {})
-  RestoreSlots(profile.slots or {}, overrides, flyouts, race, class)
-  ClearUnusedSlots(profile.slots or {})
+  local slots    = profile.slots    or {}
+  local petslots = profile.petslots or {}
+
+  if barFilter then
+    local filtered = {}
+    for _, s in ipairs(slots) do
+      local bar = math.floor((s.id - 1) / 12) + 1
+      if barFilter[bar] ~= false then
+        filtered[#filtered + 1] = s
+      end
+    end
+    slots = filtered
+    if barFilter.pet == false then petslots = {} end
+  end
+
+  RestoreMacrosAndSlots(profile.macros or {}, slots)
+  RestoreSlots(slots, overrides, flyouts, race, class)
+  ClearUnusedSlots(slots, barFilter)
   RestoreBindings(profile.binds or {})
-  RestorePetBar(profile.petslots or {})
+  RestorePetBar(petslots)
   ns.Print("Bars restored.")
 end
