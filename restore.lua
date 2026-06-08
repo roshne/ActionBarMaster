@@ -18,10 +18,11 @@ local function PickupSpellFromBook(targetSid)
       local _, _, sid = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
       if sid == targetSid then
         PickupSpellBookItem(si, Enum.SpellBookSpellBank.Player)
-        return
+        return true
       end
     end
   end
+  return false
 end
 
 local function Warn(msg)
@@ -123,16 +124,20 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() and overrides[s.index] then
           PickupSpell(overrides[s.index])
         end
+        local foundInBook = false
         if not GetCursorInfo() then
-          PickupSpellFromBook(s.index)
+          foundInBook = PickupSpellFromBook(s.index)
         end
-        if not GetCursorInfo() then
+        -- only warn if the spell exists in this character's spellbook but still failed;
+        -- if it's not in the book it's unavailable content (profession, expansion, etc.)
+        if not GetCursorInfo() and foundInBook then
           Warn(slot .. "Unknown spell [" .. s.index .. "] " .. (GetSpellLink(s.index) or ""))
         end
       elseif s.type == "flyout" then
         local f = flyouts[s.index]
         if f then PickupSpellBookItem(f[1], f[2]) end
-        if not GetCursorInfo() then
+        -- only warn if the flyout exists in this character's spellbook but still failed
+        if not GetCursorInfo() and f then
           local name = GetFlyoutInfo and GetFlyoutInfo(s.index)
           Warn(slot .. "Unknown flyout " .. (name and "[" .. name .. "]" or "[" .. s.index .. "]"))
         end
