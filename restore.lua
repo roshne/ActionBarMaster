@@ -117,24 +117,24 @@ local function RestoreFlyouts(slots, flyouts)
   for _, s in ipairs(slots) do
     if s.type == "flyout" then
       local curType, curIndex = GetActionInfo(s.id)
-      if curType == "flyout" and curIndex == s.index then goto continue end
-      local bar = math.floor((s.id - 1) / 12) + 1
-      local col = ((s.id - 1) % 12) + 1
-      local slot = "bar " .. bar .. " slot " .. col .. ": "
-      local f = flyouts[s.index]
-      if f then
-        ClearCursor()
-        PickupSpellBookItem(f[1], f[2])
+      if not (curType == "flyout" and curIndex == s.index) then
+        local bar = math.floor((s.id - 1) / 12) + 1
+        local col = ((s.id - 1) % 12) + 1
+        local slot = "bar " .. bar .. " slot " .. col .. ": "
+        local f = flyouts[s.index]
+        if f then
+          ClearCursor()
+          PickupSpellBookItem(f[1], f[2])
+        end
+        if GetCursorInfo() then
+          PlaceAction(s.id)
+          ClearCursor()
+        elseif f then
+          local name = GetFlyoutInfo and GetFlyoutInfo(s.index)
+          Warn(slot .. "drag " .. (name and "[" .. name .. "]" or "flyout " .. s.index)
+            .. " from your spellbook to restore it")
+        end
       end
-      if GetCursorInfo() then
-        PlaceAction(s.id)
-        ClearCursor()
-      elseif f then
-        local name = GetFlyoutInfo and GetFlyoutInfo(s.index)
-        Warn(slot .. "drag " .. (name and "[" .. name .. "]" or "flyout " .. s.index)
-          .. " from your spellbook to restore it")
-      end
-      ::continue::
     end
   end
 end
