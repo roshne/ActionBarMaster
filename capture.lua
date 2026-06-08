@@ -157,6 +157,40 @@ local function ProfileMeta()
   }
 end
 
+-- GetActionInfo may misreport the type or ID for some flyouts (e.g. Warlock Summon Demon
+-- in certain client versions). Walk the spellbook and use FindFlyoutActionButtons as the
+-- authoritative source, overwriting or adding entries so the restore fallbacks have a valid ID.
+local function SupplementFlyouts(slots)
+  if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return end
+  if not (C_ActionBar and C_ActionBar.FindFlyoutActionButtons) then return end
+
+  local slotIdx = {}
+  for i, s in ipairs(slots) do slotIdx[s.id] = i end
+
+  for lineIdx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+    local info = C_SpellBook.GetSpellBookSkillLineInfo(lineIdx)
+    for i = 1, info.numSpellBookItems do
+      local si = info.itemIndexOffset + i
+      local typ, flyoutID = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+      if typ == Enum.SpellBookItemType.Flyout then
+        local barSlots = C_ActionBar.FindFlyoutActionButtons(flyoutID)
+        for _, barSlot in ipairs(barSlots or {}) do
+          local existingIdx = slotIdx[barSlot]
+          if existingIdx then
+            local s = slots[existingIdx]
+            if s.type ~= "flyout" or s.index ~= flyoutID then
+              slots[existingIdx] = { id = barSlot, type = "flyout", index = flyoutID }
+            end
+          else
+            slots[#slots + 1] = { id = barSlot, type = "flyout", index = flyoutID }
+            slotIdx[barSlot] = #slots
+          end
+        end
+      end
+    end
+  end
+end
+
 ---Capture the current character's setup into a profile table.
 ---@return table profile
 function ns.Capture()
@@ -168,6 +202,7 @@ function ns.Capture()
   local profile = ProfileMeta()
   profile.version  = 1
   profile.slots    = CaptureSlots(overrides, true, racialSet, profNameMap)
+  SupplementFlyouts(profile.slots)
   profile.binds    = CaptureBindings()
   profile.macros   = CaptureMacros()
   profile.petslots = CapturePetBar()
