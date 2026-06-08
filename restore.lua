@@ -78,7 +78,7 @@ local function BuildFlyoutMap()
       for i = 1, info.numSpellBookItems do
         local si = info.itemIndexOffset + i
         local typ, id = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
-        if typ == Enum.SpellBookItemType.Flyout then
+        if typ == Enum.SpellBookItemType.Flyout and not map[id] then
           map[id] = { si, Enum.SpellBookSpellBank.Player }
         end
       end
@@ -117,17 +117,14 @@ local function RestoreFlyouts(slots, flyouts)
   for _, s in ipairs(slots) do
     if s.type == "flyout" then
       local curType, curIndex = GetActionInfo(s.id)
-      ns.Print(string.format("[DBG] slot=%d idx=%s cur=(%s,%s)", s.id, tostring(s.index), tostring(curType), tostring(curIndex)))
       if not (curType == "flyout" and curIndex == s.index) then
         local bar = math.floor((s.id - 1) / 12) + 1
         local col = ((s.id - 1) % 12) + 1
         local slot = "bar " .. bar .. " slot " .. col .. ": "
         local f = flyouts[s.index]
-        ns.Print(string.format("[DBG] f=%s", f and string.format("{%d,%s}", f[1], tostring(f[2])) or "nil"))
         if f then
           ClearCursor()
           PickupSpellBookItem(f[1], f[2])
-          ns.Print(string.format("[DBG] cursor=(%s,%s)", tostring(GetCursorInfo())))
         end
         if GetCursorInfo() then
           PlaceAction(s.id)
