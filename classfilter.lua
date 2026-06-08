@@ -59,8 +59,23 @@ function ns.BuildClassFilter(parent, position, onSelect)
     },
   }
 
+  -- Transparent full-screen catcher; closes the menu on any click outside it
+  local catcher = CreateFrame("Frame", nil, UIParent)
+  catcher:SetAllPoints(UIParent)
+  catcher:SetFrameStrata("DIALOG")
+  catcher:SetFrameLevel(1)
+  catcher:EnableMouse(true)
+  catcher:Hide()
+  catcher:SetScript("OnMouseDown", function()
+    menu:Hide()
+    catcher:Hide()
+  end)
+
   -- Replace placeholder; showing an already-visible menu is harmless (AnyDown+AnyUp both fire)
-  triggerBtn.onClick = function() menu:Show() end
+  triggerBtn.onClick = function()
+    menu:Show()
+    catcher:Show()
+  end
 
   for i, cls in ipairs(CLASSES) do
     local btn = ui.Button:new{
@@ -73,6 +88,7 @@ function ns.BuildClassFilter(parent, position, onSelect)
       onClick = function()
         triggerLabel:Text(ClassLabel(cls.key, cls.label) .. " v")
         menu:Hide()
+        catcher:Hide()
         onSelect(cls.key)
       end,
     }
