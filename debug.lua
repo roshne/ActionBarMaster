@@ -168,5 +168,5 @@ end
 ns:registerCommand("debug", "flyouts", function() DebugFlyouts() end,
   "Dump flyout spellbook and bar-slot state for debugging")
 
-ns:registerCommand("debug", "flyout-restore", function() DebugFlyoutRestore() end,
+ns:registerCommand("debug", "flyoutrestore", function() DebugFlyoutRestore() end,
   "Test PickupSpellBookItem for each flyout and show cursor state")
