@@ -8,7 +8,6 @@ local FILTER_W = 130
 local PAD      = 8
 local ROW_H    = 22
 local BTN_H    = 22
-local TXTDLG_W = 420
 
 local window = nil
 
@@ -93,139 +92,14 @@ local function CreateWindow()
   }
   f._barsGrid = ns.BuildBarsGrid(barsPanel)
 
-  -- ── Save dialog ──────────────────────────────────────────────────────────
-  local DLG_W, DLG_H = 280, 120
-  local saveDialog = ui.TitleFrame:new{
-    name     = "ActionBarMasterSaveDialog",
-    title    = "Save Profile",
-    special  = true,
-    level    = 700,
-    position = { Center = {}, Width = DLG_W, Height = DLG_H, Hide = true },
-  }
-
-  ui.Label:new{
-    parent   = saveDialog,
-    text     = "Profile name:",
-    position = {
-      TopLeft = { saveDialog.titlebar, ui.edge.BottomLeft, PAD, -PAD },
-      Height  = ROW_H,
-      Width   = DLG_W - PAD * 2,
-    },
-  }
-
-  local DoSave
-  local nameBox = ui.EditBox:new{
-    parent   = saveDialog,
-    position = {
-      TopLeft = { saveDialog.titlebar, ui.edge.BottomLeft, PAD, -(PAD + ROW_H + 4) },
-      Width   = DLG_W - PAD * 2,
-      Height  = ROW_H,
-    },
-    OnEnterPressed  = function(self) DoSave() end,
-    OnEscapePressed = function(self) saveDialog:Hide() end,
-  }
-  saveDialog._nameBox = nameBox
-
-  DoSave = function()
-    local name = nameBox:Text()
-    if name == "" then return end
-    local profile = ns.Capture()
-    local encoded = ns.Encode(profile)
-    table.insert(ns.db.profiles, {
-      name = name, char = profile.char, class = profile.class,
-      spec = profile.spec, encoded = encoded,
-    })
-    refreshList()
-    saveDialog:Hide()
-  end
-
-  ui.Button:new{
-    parent = saveDialog, onClick = DoSave,
-    position = { Right = { saveDialog, ui.edge.Center, -2, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
-  ui.Label:new{
-    parent = saveDialog, text = "OK",
-    position = { Right = { saveDialog, ui.edge.Center, -2 + 4, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
-  ui.Button:new{
-    parent = saveDialog, onClick = function() saveDialog:Hide() end,
-    position = { Left = { saveDialog, ui.edge.Center, 2, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
-  ui.Label:new{
-    parent = saveDialog, text = "Cancel",
-    position = { Left = { saveDialog, ui.edge.Center, 2 + 4, 0 }, Bottom = { saveDialog, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
-
-  -- ── Export dialog ────────────────────────────────────────────────────────
-  local expDlg = ui.TitleFrame:new{
-    name = "ActionBarMasterExportDlg", title = "Export",
-    special = true, level = 700,
-    position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
-  }
-  local expScroll = ui.ScrollFrame:new{
-    parent = expDlg,
-    position = {
-      TopLeft     = { expDlg.titlebar, ui.edge.BottomLeft, PAD, -PAD },
-      BottomRight = { expDlg, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
-    },
-  }
-  local expBox = ui.EditBox:new{
-    parent = expScroll, multiline = true, template = "",
-    fontObj = GameFontHighlightSmall,
-    position  = { Width = TXTDLG_W - PAD * 2 - 20 },
-    OnEscapePressed = function() expDlg:Hide() end,
-    OnMouseUp       = function(self) self._widget:HighlightText(0, -1) end,
-  }
-  expScroll:Child(expBox)
-  local expClose = ui.Button:new{
-    parent = expDlg, template = "UIPanelButtonTemplate", glow = false,
-    onClick  = function() expDlg:Hide() end,
-    position = { Left = { expDlg, ui.edge.Center, -40, 0 }, Bottom = { expDlg, ui.edge.Bottom, 0, PAD }, Width = 80, Height = BTN_H },
-  }
-  expClose:Text("Close")
-  expClose:TextAlign("CENTER")
-
-  -- ── Import dialog ────────────────────────────────────────────────────────
-  local impDlg = ui.TitleFrame:new{
-    name = "ActionBarMasterImportDlg", title = "Import",
-    special = true, level = 700,
-    position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
-  }
-  local impScroll = ui.ScrollFrame:new{
-    parent = impDlg,
-    position = {
-      TopLeft     = { impDlg.titlebar, ui.edge.BottomLeft, PAD, -PAD },
-      BottomRight = { impDlg, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
-    },
-  }
-  local impBox = ui.EditBox:new{
-    parent = impScroll, multiline = true, template = "",
-    fontObj   = GameFontHighlightSmall,
-    position  = { Width = TXTDLG_W - PAD * 2 - 20 },
-    OnEscapePressed = function() impDlg:Hide() end,
-  }
-  impScroll:Child(impBox)
-  local impBtn = ui.Button:new{
-    parent = impDlg, template = "UIPanelButtonTemplate", glow = false,
-    onClick = function()
-      local profile, err = ns.Decode(impBox._widget:GetText())
-      if not profile then ns.Print("Import failed: " .. (err or "?")); return end
-      impDlg:Hide()
-      f._pendingProfile   = profile
-      f._pendingBarFilter = nil
-      StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
-    end,
-    position = { Right = { impDlg, ui.edge.Center, -2, 0 }, Bottom = { impDlg, ui.edge.Bottom, 0, PAD }, Width = 80, Height = BTN_H },
-  }
-  impBtn:Text("Import")
-  impBtn:TextAlign("CENTER")
-  local impClose = ui.Button:new{
-    parent = impDlg, template = "UIPanelButtonTemplate", glow = false,
-    onClick  = function() impDlg:Hide() end,
-    position = { Left = { impDlg, ui.edge.Center, 2, 0 }, Bottom = { impDlg, ui.edge.Bottom, 0, PAD }, Width = 80, Height = BTN_H },
-  }
-  impClose:Text("Close")
-  impClose:TextAlign("CENTER")
+  -- ── Dialogs ──────────────────────────────────────────────────────────────
+  local saveDialog = ns.BuildSaveDialog(f, function() refreshList() end)
+  local expDlg     = ns.BuildExportDialog(f)
+  local impDlg     = ns.BuildImportDialog(f, function(profile)
+    f._pendingProfile   = profile
+    f._pendingBarFilter = nil
+    StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+  end)
 
   -- ── Bottom buttons ───────────────────────────────────────────────────────
   local W1, W2, BSEP, GSEP = 110, 60, 4, 20  -- wide btn, std btn, btn gap, group gap
@@ -277,17 +151,17 @@ local function CreateWindow()
       label = "Export", x = RX[1],
       fn = function()
         local encoded = ns.Encode(ns.Capture())
-        expBox:Text(encoded)
-        expBox._widget:HighlightText(0, -1)
+        expDlg._box:Text(encoded)
+        expDlg._box._widget:HighlightText(0, -1)
         expDlg:Show()
       end,
     },
     {
       label = "Import", x = RX[2],
       fn = function()
-        impBox:Text("")
+        impDlg._box:Text("")
         impDlg:Show()
-        impBox._widget:SetFocus()
+        impDlg._box._widget:SetFocus()
       end,
     },
   }
