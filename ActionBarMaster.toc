@@ -17,11 +17,13 @@ libs\racials.lua
 libs\professions.lua
 init.lua
 capture.lua
+restore_pass.lua
 restore.lua
 serialize.lua
 autosave.lua
 profilelist.lua
 classfilter.lua
 barsview.lua
+window_dialogs.lua
 window.lua
 debug.lua
