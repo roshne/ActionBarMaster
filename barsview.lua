@@ -215,6 +215,21 @@ function ns.BuildBarsGrid(parent)
     end)
     handle:SetScript("OnMouseUp", function(_, mbtn) finalizeDrag(mbtn) end)
 
+    -- Hamburger grip: three stacked lines signalling the row is draggable.
+    -- Drawn with textures (vertically centered in the cell) rather than an
+    -- atlas — the only stock drag-grip atlas is glue-screen-only.
+    for line = 0, 2 do
+      ui.Texture:new{
+        parent   = handle,
+        color    = rgba(255, 255, 255, 0.35),
+        position = {
+          TopLeft = { handle, ui.edge.TopLeft, 2, -(CELL - 8) / 2 - line * 3 },
+          Width   = 10,
+          Height  = 2,
+        },
+      }
+    end
+
     row.chk = ui.CheckButton:new{
       parent   = row.rowF,
       position = { TopLeft = { row.rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
