@@ -71,8 +71,12 @@ function ns.BuildClassFilter(parent, position, onSelect)
   catcher:Hide()
   catcher:SetScript("OnMouseDown", function()
     menu:Hide()
-    catcher:Hide()
   end)
+
+  -- The menu is special (UISpecialFrames), so Escape can hide it without going
+  -- through any click path — mirror every hide onto the catcher here, otherwise
+  -- the invisible catcher stays up and swallows the next click.
+  menu._widget:HookScript("OnHide", function() catcher:Hide() end)
 
   -- Replace placeholder; showing an already-visible menu is harmless (AnyDown+AnyUp both fire)
   triggerBtn.onClick = function()
@@ -91,7 +95,6 @@ function ns.BuildClassFilter(parent, position, onSelect)
       onClick = function()
         triggerLabel:Text(ClassLabel(cls.key, cls.label) .. " v")
         menu:Hide()
-        catcher:Hide()
         onSelect(cls.key)
       end,
     }

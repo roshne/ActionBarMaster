@@ -148,7 +148,7 @@ profile = {
 
 ## Class Filter (`classfilter.lua`)
 
-`BuildClassFilter` builds a custom dropdown (not Blizzard's UIDropDownMenu) using a `BgFrame` menu + a full-screen transparent `catcher` frame at `(menu.level − 1)` to close the menu on outside clicks. Menu items sit at `(menu.level + 1)`. Both menu and catcher use `DIALOG` strata so level ordering applies.
+`BuildClassFilter` builds a custom dropdown (not Blizzard's UIDropDownMenu) using a `BgFrame` menu + a full-screen transparent `catcher` frame at `(menu.level − 1)` to close the menu on outside clicks. Menu items sit at `(menu.level + 1)`. Both menu and catcher use `DIALOG` strata so level ordering applies. The catcher is hidden via a hook on the menu's `OnHide` — every hide path (item click, outside click, Escape via UISpecialFrames) funnels through `menu:Hide()`.
 
 ---
 
