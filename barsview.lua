@@ -18,14 +18,14 @@ local GRID_X        = CHK_W + GAP
 -- Static bar definitions: ABM slot mapping + WoW display label.
 -- abmToBarDef is the lookup used when reconstructing ordered rows from db.barOrder.
 local BAR_DEFS = {
-  { abm = 1,  label = "1"         },
-  { abm = 6,  label = "2"         },
-  { abm = 5,  label = "3"         },
-  { abm = 3,  label = "4"         },
-  { abm = 4,  label = "5"         },
-  { abm = 13, label = "6"         },
-  { abm = 14, label = "7"         },
-  { abm = 15, label = "8"         },
+  { abm = 1,  label = "Bar 1"     },
+  { abm = 6,  label = "Bar 2"     },
+  { abm = 5,  label = "Bar 3"     },
+  { abm = 3,  label = "Bar 4"     },
+  { abm = 4,  label = "Bar 5"     },
+  { abm = 13, label = "Bar 6"     },
+  { abm = 14, label = "Bar 7"     },
+  { abm = 15, label = "Bar 8"     },
   { abm = 2,  label = "Bonus"     },
   { abm = 7,  label = "Class 1"   },
   { abm = 8,  label = "Class 2"   },
