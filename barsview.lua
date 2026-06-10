@@ -15,43 +15,6 @@ local CHK_Y         = -math.floor((CELL - CHK_SZ) / 2)
 local CHK_W         = CHK_X + CHK_SZ + 2
 local GRID_X        = CHK_W + GAP
 
--- Static bar definitions: ABM slot mapping + WoW display label.
--- abmToBarDef is the lookup used when reconstructing ordered rows from db.barOrder.
-local BAR_DEFS = {
-  { abm = 1,  label = "Bar 1"     },
-  { abm = 6,  label = "Bar 2"     },
-  { abm = 5,  label = "Bar 3"     },
-  { abm = 3,  label = "Bar 4"     },
-  { abm = 4,  label = "Bar 5"     },
-  { abm = 13, label = "Bar 6"     },
-  { abm = 14, label = "Bar 7"     },
-  { abm = 15, label = "Bar 8"     },
-  { abm = 2,  label = "Bonus"     },
-  { abm = 7,  label = "Class 1"   },
-  { abm = 8,  label = "Class 2"   },
-  { abm = 9,  label = "Class 3"   },
-  { abm = 10, label = "Class 4"   },
-  { abm = 12, label = "Class 5"   },
-  { abm = 11, label = "Skyriding" },
-}
-
-local abmToBarDef = {}
-for _, def in ipairs(BAR_DEFS) do abmToBarDef[def.abm] = def end
-
-local DEFAULT_ORDER = {}
-for _, def in ipairs(BAR_DEFS) do DEFAULT_ORDER[#DEFAULT_ORDER + 1] = def.abm end
-
--- Returns the ordered array of bar defs to display, sourced from db.barOrder.
-local function getActiveOrder()
-  local source = (ns.db and ns.db.barOrder) or DEFAULT_ORDER
-  local result = {}
-  for _, abm in ipairs(source) do
-    local def = abmToBarDef[abm]
-    if def then result[#result + 1] = def end
-  end
-  return result
-end
-
 ---Build a scrollable action-bar icon grid inside `parent`.
 ---Rows follow the user-configured order stored in db.barOrder; dragging a row
 ---label reorders it and persists the new order immediately.
@@ -95,84 +58,25 @@ function ns.BuildBarsGrid(parent)
   local petRow         = nil  -- pooled pet bar row
   local checked        = {}   -- [abmBar | "pet"] = bool; nil means default (checked)
   local currentProfile = nil
-  local dragFrom       = nil  -- 1-based index in db.barOrder being dragged
-  local dragTo         = nil  -- 0-based gap slot for the drop target
   local Update                -- forward-declared; assigned below
-  local finalizeDrag          -- forward-declared; assigned after Update
 
   local function isChecked(key) return checked[key] ~= false end
 
-  -- ── Drag frames (created once, reused across drags) ───────────────────────
-
-  local phantom = CreateFrame("Frame", nil, UIParent)
-  phantom:SetSize(totalW, CELL)
-  phantom:SetFrameStrata("DIALOG")
-  phantom:SetFrameLevel(700)
-  phantom:EnableMouse(false)
-  phantom:Hide()
-  local phantomBg = phantom:CreateTexture(nil, "BACKGROUND")
-  phantomBg:SetAllPoints()
-  phantomBg:SetColorTexture(0.15, 0.35, 0.7, 0.6)
-  local phantomLabel = phantom:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  phantomLabel:SetPoint("LEFT", phantom, "LEFT", GRID_X, 0)
-  phantomLabel:SetWidth(LABEL_W)
-  phantomLabel:SetJustifyH("RIGHT")
-
-  local dropLine = CreateFrame("Frame", nil, UIParent)
-  dropLine:SetSize(totalW, 2)
-  dropLine:SetFrameStrata("DIALOG")
-  dropLine:SetFrameLevel(699)
-  dropLine:EnableMouse(false)
-  dropLine:Hide()
-  local dropLineTex = dropLine:CreateTexture(nil, "OVERLAY")
-  dropLineTex:SetAllPoints()
-  dropLineTex:SetColorTexture(1, 0.8, 0, 1)
-
-  -- Full-screen catcher intercepts OnMouseUp to end the drag from anywhere.
-  -- Same strata as phantom so frame-level ordering applies.
-  local catcher = CreateFrame("Frame", nil, UIParent)
-  catcher:SetAllPoints(UIParent)
-  catcher:SetFrameStrata("DIALOG")
-  catcher:SetFrameLevel(698)
-  catcher:EnableMouse(true)
-  catcher:Hide()
-
-  catcher:SetScript("OnUpdate", function()
-    if not dragFrom then return end
-    local scale = UIParent:GetEffectiveScale()
-    local _, cy = GetCursorPosition()
-    cy = cy / scale
-
-    local contentTop  = content._widget:GetTop()
-    local contentLeft = content._widget:GetLeft()
-    local rowH        = CELL + GAP
-    local n           = #(ns.db.barOrder)
-
-    -- Round cursor position to nearest row gap (0 = before first row, n = after last)
-    local relY = contentTop - cy
-    local slot = math.floor(relY / rowH + 0.5)
-    slot  = math.max(0, math.min(n, slot))
-    dragTo = slot
-
-    -- Drop indicator line sits at the top of the target gap
-    local lineY = contentTop - slot * rowH
-    dropLine:ClearAllPoints()
-    dropLine:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", contentLeft, lineY)
-    dropLine:SetWidth(totalW)
-    dropLine:Show()
-
-    -- Phantom row follows cursor, clamped inside content bounds
-    local phantomY = cy + CELL * 0.5
-    phantomY = math.min(contentTop, math.max(contentTop - n * rowH + CELL, phantomY))
-    phantom:ClearAllPoints()
-    phantom:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", contentLeft, phantomY)
-    phantom:Show()
-  end)
-
-  -- WoW Button frames capture the mouse on press, so OnMouseUp always fires on
-  -- whichever handle was pressed — not on the catcher. finalizeDrag is shared by
-  -- both so either path correctly ends the drag.
-  catcher:SetScript("OnMouseUp", function(_, btn) finalizeDrag(btn) end)
+  local drag = ns.BuildRowDrag{
+    content = content,
+    totalW  = totalW,
+    cell    = CELL,
+    gap     = GAP,
+    labelX  = GRID_X,
+    labelW  = LABEL_W,
+    count   = function() return #(ns.db.barOrder) end,
+    onDrop  = function(from, insertPos)
+      local order = ns.db.barOrder
+      local moved = table.remove(order, from)
+      table.insert(order, insertPos, moved)
+      if currentProfile then Update(currentProfile) end
+    end,
+  }
 
   -- ── Row pool ───────────────────────────────────────────────────────────────
   -- Rows and cells are created once and re-filled on every Update — WoW frames
@@ -208,12 +112,9 @@ function ns.BuildBarsGrid(parent)
     handle:SetScript("OnLeave", function() GameTooltip:Hide() end)
     handle:SetScript("OnMouseDown", function(_, mbtn)
       if mbtn ~= "LeftButton" then return end
-      dragFrom = row.orderIdx
-      dragTo   = nil
-      phantomLabel:SetText(row.barLabel)
-      catcher:Show()
+      drag.Start(row.orderIdx, row.barLabel)
     end)
-    handle:SetScript("OnMouseUp", function(_, mbtn) finalizeDrag(mbtn) end)
+    handle:SetScript("OnMouseUp", function(_, mbtn) drag.Finish(mbtn) end)
 
     -- Hamburger grip: three stacked lines signalling the row is draggable.
     -- Drawn with textures (vertically centered in the cell) rather than an
@@ -364,7 +265,7 @@ function ns.BuildBarsGrid(parent)
       end
     end
 
-    local activeOrder = getActiveOrder()
+    local activeOrder = ns.GetActiveBarOrder()
     local totalRows   = 0
 
     for rowIdx, barDef in ipairs(activeOrder) do
@@ -402,31 +303,6 @@ function ns.BuildBarsGrid(parent)
     end
 
     content:Height(math.max(totalRows * (CELL + GAP), 1))
-  end
-
-  finalizeDrag = function(btn)
-    local from = dragFrom
-    local to   = dragTo
-    dragFrom = nil
-    dragTo   = nil
-    phantom:Hide()
-    dropLine:Hide()
-    catcher:Hide()
-
-    if btn == "LeftButton" and from and to then
-      -- Convert 0-based gap slot to a 1-based insert position in the post-removal array
-      local insertPos
-      if to <= from - 1 then insertPos = to + 1
-      else                   insertPos = to end
-      if insertPos ~= from then
-        local order = ns.db.barOrder
-        local moved = table.remove(order, from)
-        table.insert(order, insertPos, moved)
-        -- Only rebuild when the order actually changed; a plain click on a
-        -- handle also lands here with a no-op drop
-        if currentProfile then Update(currentProfile) end
-      end
-    end
   end
 
   return { Update = Update, GetChecked = function() return checked end }

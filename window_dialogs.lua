@@ -14,13 +14,15 @@ local TXTDLG_W = 420
 ---@param onSaved fun()  called after a profile is saved (e.g. refresh the list)
 ---@return table  dialog frame (exposes ._nameBox for the Save button to focus)
 function ns.BuildSaveDialog(parent, onSaved)
+  -- Dialogs are NOT `special`: CloseSpecialWindows hides every visible special
+  -- frame at once, so Escape would close the main window along with the dialog.
   local dlg = ui.TitleFrame:new{
     name     = "ActionBarMasterSaveDialog",
     title    = "Save Profile",
-    special  = true,
     level    = 700,
     position = { Center = {}, Width = DLG_W, Height = DLG_H, Hide = true },
   }
+  ns.CaptureEscape(dlg)
 
   ui.Label:new{
     parent   = dlg,
@@ -58,22 +60,21 @@ function ns.BuildSaveDialog(parent, onSaved)
     dlg:Hide()
   end
 
-  ui.Button:new{
-    parent = dlg, onClick = DoSave,
+  local okBtn = ui.Button:new{
+    parent = dlg, template = "UIPanelButtonTemplate", glow = false,
+    onClick  = DoSave,
     position = { Right = { dlg, ui.edge.Center, -2, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
-  ui.Label:new{
-    parent = dlg, text = "OK",
-    position = { Right = { dlg, ui.edge.Center, 2, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
-  ui.Button:new{
-    parent = dlg, onClick = function() dlg:Hide() end,
+  okBtn:Text("OK")
+  okBtn:TextAlign("CENTER")
+
+  local cancelBtn = ui.Button:new{
+    parent = dlg, template = "UIPanelButtonTemplate", glow = false,
+    onClick  = function() dlg:Hide() end,
     position = { Left = { dlg, ui.edge.Center, 2, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
-  ui.Label:new{
-    parent = dlg, text = "Cancel",
-    position = { Left = { dlg, ui.edge.Center, 6, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
+  cancelBtn:Text("Cancel")
+  cancelBtn:TextAlign("CENTER")
 
   return dlg
 end
@@ -85,9 +86,10 @@ end
 function ns.BuildExportDialog(parent)
   local dlg = ui.TitleFrame:new{
     name = "ActionBarMasterExportDlg", title = "Export",
-    special = true, level = 700,
+    level = 700,  -- not special; Escape handled by ns.CaptureEscape
     position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
   }
+  ns.CaptureEscape(dlg)
   local scroll = ui.ScrollFrame:new{
     parent = dlg,
     position = {
@@ -124,9 +126,10 @@ end
 function ns.BuildImportDialog(parent, onImport)
   local dlg = ui.TitleFrame:new{
     name = "ActionBarMasterImportDlg", title = "Import",
-    special = true, level = 700,
+    level = 700,  -- not special; Escape handled by ns.CaptureEscape
     position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
   }
+  ns.CaptureEscape(dlg)
   local scroll = ui.ScrollFrame:new{
     parent = dlg,
     position = {

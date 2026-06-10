@@ -70,3 +70,6 @@ Use `/dump <expr>` or `/run <lua>` to inspect live data. Output appears in the c
 - **`ns.delay(ms, fn)`**: Only one active timer per addon — a new call overwrites the pending one.
 - **`rgba(r, g, b, a)`**: r/g/b are 0–255 integers, a is 0–1 float.
 - **Action bar restore**: must not run during `InCombatLockdown()` — always guard with a check before calling `ns.Restore()`.
+- **Flyouts restore FIRST**: `RestoreFlyouts` must run before any other pickup/place call in the same hardware event — `PickupSpellBookItem` for flyout-type spellbook items silently fails after other protected pickup operations. Never reorder the restore passes.
+- **`CloseSpecialWindows` hides ALL visible special frames** on one Escape press, not just the topmost. Never mark a nested frame (dropdown, popup inside the main window) `special` — capture Escape via `OnKeyDown` + `SetPropagateKeyboardInput` instead (propagate-only during combat lockdown, where that call is protected).
+- **Pool UI widgets**: WoW frames are never garbage-collected. List rows and grid cells must be created once and re-filled/hidden on refresh (`acquireRow` / `acquireBarRow` pattern), never recreated.
