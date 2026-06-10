@@ -8,7 +8,7 @@
 ## SavedVariables: ActionBarMasterDB
 ## X-NUI-UI: LibNUI
 ## X-NUI-DB: ActionBarMasterDB
-## X-NUI-DB-VERSION: 1
+## X-NUI-DB-VERSION: 2
 ## X-NUI-COMMANDS: /bars, /wbars
 
 libs\base64.lua
@@ -23,6 +23,7 @@ serialize.lua
 autosave.lua
 profilelist.lua
 classfilter.lua
+barsicons.lua
 barsview.lua
 window_dialogs.lua
 window.lua
