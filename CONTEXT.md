@@ -14,7 +14,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Addon bootstrap; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`) |
+| `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`) |
 | `capture.lua` | `ns.Capture() → profile` — builds profile from current character state |
 | `restore.lua` | `ns.Restore(profile, barFilter?)` — applies profile; no-op in combat. Flyout pre-pass + per-slot restore |
 | `restore_pass.lua` | Helper passes: `ns.RestoreMacrosAndSlots`, `ns.RestoreBindings`, `ns.RestorePetBar`, `ns.ClearUnusedSlots` |
@@ -39,6 +39,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 ## NS API Surface
 
 ```lua
+ns.CaptureEscape(frame)               -- close frame on Escape w/o CloseSpecialWindows (frame must not be `special`)
 ns.Capture()                          -- → profile table (no args)
 ns.Restore(profile, barFilter?)       -- applies profile; no-op in combat. barFilter: { [barNum|"pet"] = bool }, false = skip
 ns.Encode(profile)                    -- → copyable text string
@@ -179,7 +180,7 @@ profile = {
 
 ## Class Filter (`classfilter.lua`)
 
-`BuildClassFilter` builds a custom dropdown (not Blizzard's UIDropDownMenu) using a `BgFrame` menu + a full-screen transparent `catcher` frame at `(menu.level − 1)` to close the menu on outside clicks. Menu items sit at `(menu.level + 1)`. Both menu and catcher use `DIALOG` strata so level ordering applies. The catcher is hidden via a hook on the menu's `OnHide` — every hide path (item click, outside click, Escape, parent window hiding) funnels through `menu:Hide()`. The menu is deliberately **not** `special`: `CloseSpecialWindows` hides every visible special frame at once, so Escape would close the main window along with the menu. Instead the menu captures Escape via `OnKeyDown` + `SetPropagateKeyboardInput` while shown (propagation only, no capture, during combat lockdown).
+`BuildClassFilter` builds a custom dropdown (not Blizzard's UIDropDownMenu) using a `BgFrame` menu + a full-screen transparent `catcher` frame at `(menu.level − 1)` to close the menu on outside clicks. Menu items sit at `(menu.level + 1)`. Both menu and catcher use `DIALOG` strata so level ordering applies. The catcher is hidden via a hook on the menu's `OnHide` — every hide path (item click, outside click, Escape, parent window hiding) funnels through `menu:Hide()`. The menu — like every nested dialog in the addon (Save/Export/Import/Debug) — is deliberately **not** `special`: `CloseSpecialWindows` hides every visible special frame at once, so Escape would close the main window along with it. All of them use `ns.CaptureEscape(frame)` (init.lua) instead, which captures Escape via `OnKeyDown` + `SetPropagateKeyboardInput` while the frame is shown (propagation only, no capture, during combat lockdown). Only the main window itself is `special`.
 
 The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current spec only, `specOnly = true`) and `"<Class> - all specs"`. The spec name in the row label is re-resolved each time the menu opens. `onSelect(classKey, specOnly)` feeds `SetClassFilter(key, specOnly)` in `profilelist.lua`, which narrows to `p.spec == playerSpec` only when the flag is set.
 

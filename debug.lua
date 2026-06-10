@@ -15,10 +15,10 @@ local function GetDebugWindow()
   debugDlg = ui.TitleFrame:new{
     name    = "ActionBarMasterDebugDlg",
     title   = "ABM Debug",
-    special = true,
-    level   = 700,
+    level   = 700,  -- not special; Escape handled by ns.CaptureEscape
     position = { Center = {}, Width = DLG_W, Height = DLG_H, Hide = true },
   }
+  ns.CaptureEscape(debugDlg)
 
   local scroll = ui.ScrollFrame:new{
     parent   = debugDlg,

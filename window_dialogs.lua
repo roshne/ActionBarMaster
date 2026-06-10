@@ -14,13 +14,15 @@ local TXTDLG_W = 420
 ---@param onSaved fun()  called after a profile is saved (e.g. refresh the list)
 ---@return table  dialog frame (exposes ._nameBox for the Save button to focus)
 function ns.BuildSaveDialog(parent, onSaved)
+  -- Dialogs are NOT `special`: CloseSpecialWindows hides every visible special
+  -- frame at once, so Escape would close the main window along with the dialog.
   local dlg = ui.TitleFrame:new{
     name     = "ActionBarMasterSaveDialog",
     title    = "Save Profile",
-    special  = true,
     level    = 700,
     position = { Center = {}, Width = DLG_W, Height = DLG_H, Hide = true },
   }
+  ns.CaptureEscape(dlg)
 
   ui.Label:new{
     parent   = dlg,
@@ -84,9 +86,10 @@ end
 function ns.BuildExportDialog(parent)
   local dlg = ui.TitleFrame:new{
     name = "ActionBarMasterExportDlg", title = "Export",
-    special = true, level = 700,
+    level = 700,  -- not special; Escape handled by ns.CaptureEscape
     position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
   }
+  ns.CaptureEscape(dlg)
   local scroll = ui.ScrollFrame:new{
     parent = dlg,
     position = {
@@ -123,9 +126,10 @@ end
 function ns.BuildImportDialog(parent, onImport)
   local dlg = ui.TitleFrame:new{
     name = "ActionBarMasterImportDlg", title = "Import",
-    special = true, level = 700,
+    level = 700,  -- not special; Escape handled by ns.CaptureEscape
     position = { Center = {}, Width = TXTDLG_W, Height = 280, Hide = true },
   }
+  ns.CaptureEscape(dlg)
   local scroll = ui.ScrollFrame:new{
     parent = dlg,
     position = {
