@@ -24,6 +24,8 @@ autosave.lua
 profilelist.lua
 classfilter.lua
 barsicons.lua
+barsview_defs.lua
+barsview_drag.lua
 barsview.lua
 window_dialogs.lua
 window.lua
