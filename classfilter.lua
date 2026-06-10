@@ -26,12 +26,39 @@ local function ClassLabel(key, label)
   return c and (c:GenerateHexColorMarkup() .. label .. "|r") or label
 end
 
+local function CurrentSpecName()
+  local spec = GetSpecialization and GetSpecialization()
+  local name = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
+  if name and name ~= "" then return name end
+end
+
 ---Build a class filter dropdown inside `parent` at `position`.
----Calls onSelect(classKey or nil) when the selection changes.
+---Calls onSelect(classKey or nil, specOnly) when the selection changes.
+---The player's own class gets two rows: current spec only, and all specs.
 ---@param parent table     LibNUI frame to parent the dropdown to
 ---@param position table   LibNUI position table for the trigger button
----@param onSelect fun(key: string|nil)
+---@param onSelect fun(key: string|nil, specOnly: boolean|nil)
 function ns.BuildClassFilter(parent, position, onSelect)
+  local playerClass = select(2, UnitClass("player"))
+
+  local entries = {}
+  for _, cls in ipairs(CLASSES) do
+    if cls.key == playerClass then
+      entries[#entries+1] = { key = cls.key, label = cls.label, specOnly = true }
+      entries[#entries+1] = { key = cls.key, label = cls.label .. " - all specs" }
+    else
+      entries[#entries+1] = { key = cls.key, label = cls.label }
+    end
+  end
+
+  -- Spec-only row text resolves the live spec name, which can change while
+  -- the window is open (ACTIVE_TALENT_GROUP_CHANGED)
+  local function EntryText(e)
+    local label = e.label
+    if e.specOnly then label = label .. " - " .. (CurrentSpecName() or "current spec") end
+    return ClassLabel(e.key, label)
+  end
+
   local triggerLabel  -- assigned after button creation
 
   -- placeholder onClick so Button registers the WoW OnClick script
@@ -55,7 +82,7 @@ function ns.BuildClassFilter(parent, position, onSelect)
     position = {
       TopLeft  = { triggerBtn, ui.edge.BottomLeft,  0, 0 },
       TopRight = { triggerBtn, ui.edge.BottomRight, 0, 0 },
-      Height   = #CLASSES * ROW_H,
+      Height   = #entries * ROW_H,
       Hide     = true,
     },
   }
@@ -78,13 +105,18 @@ function ns.BuildClassFilter(parent, position, onSelect)
   -- the invisible catcher stays up and swallows the next click.
   menu._widget:HookScript("OnHide", function() catcher:Hide() end)
 
+  local rowLabels = {}
+
   -- Replace placeholder; showing an already-visible menu is harmless (AnyDown+AnyUp both fire)
   triggerBtn.onClick = function()
+    for i, e in ipairs(entries) do
+      if e.specOnly then rowLabels[i]:Text(EntryText(e)) end
+    end
     menu:Show()
     catcher:Show()
   end
 
-  for i, cls in ipairs(CLASSES) do
+  for i, e in ipairs(entries) do
     local btn = ui.Button:new{
       parent   = menu,
       position = {
@@ -93,14 +125,14 @@ function ns.BuildClassFilter(parent, position, onSelect)
         Height   = ROW_H,
       },
       onClick = function()
-        triggerLabel:Text(ClassLabel(cls.key, cls.label) .. " v")
+        triggerLabel:Text(EntryText(e) .. " v")
         menu:Hide()
-        onSelect(cls.key)
+        onSelect(e.key, e.specOnly)
       end,
     }
-    ui.Label:new{
+    rowLabels[i] = ui.Label:new{
       parent   = btn,
-      text     = ClassLabel(cls.key, cls.label),
+      text     = EntryText(e),
       position = { Left = { btn, ui.edge.Left, 4, 0 }, Top = {}, Bottom = {} },
     }
   end

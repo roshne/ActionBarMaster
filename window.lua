@@ -80,7 +80,7 @@ local function CreateWindow()
     TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
     Width   = FILTER_W,
     Height  = ROW_H,
-  }, function(key) setClassFilter(key) end)
+  }, function(key, specOnly) setClassFilter(key, specOnly) end)
 
   -- ── Right panel (bars icon grid) ─────────────────────────────────────────
   local barsPanel = ui.Frame:new{

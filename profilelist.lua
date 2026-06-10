@@ -38,19 +38,19 @@ function ns.BuildProfileList(parent, onSelect)
 
   local rows        = {}
   local selected    = nil
-  local classFilter = nil  -- nil = show all
+  local classFilter = nil    -- nil = show all
+  local specFilter  = false  -- true = also narrow to the player's current spec
 
   local function Refresh()
     for _, r in ipairs(rows) do r:Hide() end
     rows = {}
     local profiles = ns.db.profiles
-    local playerClass = select(2, UnitClass("player"))
-    local spec        = GetSpecialization and GetSpecialization()
-    local playerSpec  = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
+    local spec       = GetSpecialization and GetSpecialization()
+    local playerSpec = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
     local y = 0
     for i, p in ipairs(profiles) do
       local classMatch = not classFilter or p.class == classFilter
-      local specMatch  = classFilter ~= playerClass or p.spec == playerSpec
+      local specMatch  = not specFilter or p.spec == playerSpec
       if classMatch and specMatch then
       local h = (p.autosave and p.savedAt) and ROW_H * 2 or ROW_H
       local btn = ui.Button:new{
@@ -95,6 +95,10 @@ function ns.BuildProfileList(parent, onSelect)
   end
 
   local function SetSelected(v) selected = v end
-  local function SetClassFilter(key) classFilter = key; Refresh() end
+  local function SetClassFilter(key, specOnly)
+    classFilter = key
+    specFilter  = specOnly or false
+    Refresh()
+  end
   return scroll, Refresh, function() return selected end, SetSelected, SetClassFilter
 end
