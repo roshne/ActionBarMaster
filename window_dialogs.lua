@@ -58,22 +58,21 @@ function ns.BuildSaveDialog(parent, onSaved)
     dlg:Hide()
   end
 
-  ui.Button:new{
-    parent = dlg, onClick = DoSave,
+  local okBtn = ui.Button:new{
+    parent = dlg, template = "UIPanelButtonTemplate", glow = false,
+    onClick  = DoSave,
     position = { Right = { dlg, ui.edge.Center, -2, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
-  ui.Label:new{
-    parent = dlg, text = "OK",
-    position = { Right = { dlg, ui.edge.Center, 2, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
-  ui.Button:new{
-    parent = dlg, onClick = function() dlg:Hide() end,
+  okBtn:Text("OK")
+  okBtn:TextAlign("CENTER")
+
+  local cancelBtn = ui.Button:new{
+    parent = dlg, template = "UIPanelButtonTemplate", glow = false,
+    onClick  = function() dlg:Hide() end,
     position = { Left = { dlg, ui.edge.Center, 2, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
   }
-  ui.Label:new{
-    parent = dlg, text = "Cancel",
-    position = { Left = { dlg, ui.edge.Center, 6, 0 }, Bottom = { dlg, ui.edge.Bottom, 0, PAD }, Width = 60, Height = BTN_H },
-  }
+  cancelBtn:Text("Cancel")
+  cancelBtn:TextAlign("CENTER")
 
   return dlg
 end
