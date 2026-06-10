@@ -92,6 +92,7 @@ function ns.BuildBarsGrid(parent)
   local dragFrom       = nil  -- 1-based index in db.barOrder being dragged
   local dragTo         = nil  -- 0-based gap slot for the drop target
   local Update                -- forward-declared; assigned below
+  local finalizeDrag          -- forward-declared; assigned after Update
 
   local function isChecked(key) return checked[key] ~= false end
 
@@ -162,29 +163,10 @@ function ns.BuildBarsGrid(parent)
     phantom:Show()
   end)
 
-  catcher:SetScript("OnMouseUp", function(_, btn)
-    local from = dragFrom
-    local to   = dragTo
-    dragFrom = nil
-    dragTo   = nil
-    phantom:Hide()
-    dropLine:Hide()
-    catcher:Hide()
-
-    if btn == "LeftButton" and from and to then
-      -- Convert gap slot to a 1-based insert position in the post-removal array
-      local insertPos
-      if to <= from - 1 then insertPos = to + 1
-      else                   insertPos = to end
-      if insertPos ~= from then
-        local order = ns.db.barOrder
-        local moved = table.remove(order, from)
-        table.insert(order, insertPos, moved)
-      end
-    end
-
-    if currentProfile then Update(currentProfile) end
-  end)
+  -- WoW Button frames capture the mouse on press, so OnMouseUp always fires on
+  -- whichever handle was pressed — not on the catcher. finalizeDrag is shared by
+  -- both so either path correctly ends the drag.
+  catcher:SetScript("OnMouseUp", function(_, btn) finalizeDrag(btn) end)
 
   -- ── Update ────────────────────────────────────────────────────────────────
 
@@ -255,6 +237,7 @@ function ns.BuildBarsGrid(parent)
         phantomLabel:SetText(capturedLabel)
         catcher:Show()
       end)
+      handle:SetScript("OnMouseUp", function(_, btn) finalizeDrag(btn) end)
 
       -- Checkbox
       local barKey = barDef.abm
@@ -371,6 +354,30 @@ function ns.BuildBarsGrid(parent)
     end
 
     content:Height(math.max(totalRows * (CELL + GAP), 1))
+  end
+
+  finalizeDrag = function(btn)
+    local from = dragFrom
+    local to   = dragTo
+    dragFrom = nil
+    dragTo   = nil
+    phantom:Hide()
+    dropLine:Hide()
+    catcher:Hide()
+
+    if btn == "LeftButton" and from and to then
+      -- Convert 0-based gap slot to a 1-based insert position in the post-removal array
+      local insertPos
+      if to <= from - 1 then insertPos = to + 1
+      else                   insertPos = to end
+      if insertPos ~= from then
+        local order = ns.db.barOrder
+        local moved = table.remove(order, from)
+        table.insert(order, insertPos, moved)
+      end
+    end
+
+    if currentProfile then Update(currentProfile) end
   end
 
   return { Update = Update, GetChecked = function() return checked end }
