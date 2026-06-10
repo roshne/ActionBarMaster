@@ -39,7 +39,7 @@ ns.Encode(profile)                    -- → copyable text string
 ns.Decode(text)                       -- → profile, err (nil, msg on failure)
 ns.AutoSave()                         -- capture + upsert autosave entry in db.profiles
 ns.BuildProfileList(parent, onSelect) -- → scroll, Refresh(), GetSelected(), SetSelected(i), SetClassFilter(key)
-ns.BuildClassFilter(parent, pos, onSelect)  -- class dropdown; calls onSelect(classKey|nil)
+ns.BuildClassFilter(parent, pos, onSelect)  -- class dropdown; calls onSelect(classKey|nil, specOnly)
 ns.BuildBarsGrid(parent)              -- → { Update(profile?) } icon grid
 ns.GetRacialSpells(race, class)       -- → ordered array of spell IDs
 ns.GetRacialSpellSet(race, class)     -- → { [spellID] = ordinal }
@@ -149,6 +149,8 @@ profile = {
 ## Class Filter (`classfilter.lua`)
 
 `BuildClassFilter` builds a custom dropdown (not Blizzard's UIDropDownMenu) using a `BgFrame` menu + a full-screen transparent `catcher` frame at `(menu.level − 1)` to close the menu on outside clicks. Menu items sit at `(menu.level + 1)`. Both menu and catcher use `DIALOG` strata so level ordering applies.
+
+The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current spec only, `specOnly = true`) and `"<Class> - all specs"`. The spec name in the row label is re-resolved each time the menu opens. `onSelect(classKey, specOnly)` feeds `SetClassFilter(key, specOnly)` in `profilelist.lua`, which narrows to `p.spec == playerSpec` only when the flag is set.
 
 ---
 
