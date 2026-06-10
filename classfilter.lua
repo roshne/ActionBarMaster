@@ -73,12 +73,14 @@ function ns.BuildClassFilter(parent, position, onSelect)
     position = { Left = { triggerBtn, ui.edge.Left, 4, 0 }, Top = {}, Bottom = {} },
   }
 
+  -- Not `special`: CloseSpecialWindows hides *every* visible special frame at
+  -- once, so Escape would take the main window down along with the menu.
+  -- Escape is handled by the OnKeyDown capture below instead.
   local menu = ui.BgFrame:new{
     name     = "ActionBarMasterClassFilter",
     parent   = parent,
     level    = 650,
     strata   = "DIALOG",  -- must match catcher strata so level ordering applies
-    special  = true,
     position = {
       TopLeft  = { triggerBtn, ui.edge.BottomLeft,  0, 0 },
       TopRight = { triggerBtn, ui.edge.BottomRight, 0, 0 },
@@ -100,10 +102,24 @@ function ns.BuildClassFilter(parent, position, onSelect)
     menu:Hide()
   end)
 
-  -- The menu is special (UISpecialFrames), so Escape can hide it without going
-  -- through any click path — mirror every hide onto the catcher here, otherwise
-  -- the invisible catcher stays up and swallows the next click.
+  -- Every dismissal path (item click, outside click, Escape, parent window
+  -- hiding) funnels through the menu hiding — mirror it onto the catcher here,
+  -- otherwise the invisible catcher stays up and swallows the next click.
   menu._widget:HookScript("OnHide", function() catcher:Hide() end)
+
+  -- While the menu is shown, capture Escape and swallow it so it closes only
+  -- the menu, not the (special) main window via CloseSpecialWindows. All other
+  -- keys propagate normally. SetPropagateKeyboardInput is protected in combat;
+  -- in that case just propagate (Escape then also closes the window).
+  menu._widget:EnableKeyboard(true)
+  menu._widget:SetPropagateKeyboardInput(true)
+  menu._widget:SetScript("OnKeyDown", function(w, key)
+    local isEsc = key == "ESCAPE"
+    if not InCombatLockdown() then
+      w:SetPropagateKeyboardInput(not isEsc)
+    end
+    if isEsc then menu:Hide() end
+  end)
 
   local rowLabels = {}
 
