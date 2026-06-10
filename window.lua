@@ -209,6 +209,10 @@ local function CreateWindow()
         f._pendingBarFilter = nil
       end
     end,
+    OnCancel = function(self)
+      f._pendingProfile   = nil
+      f._pendingBarFilter = nil
+    end,
   }
 
   return f
