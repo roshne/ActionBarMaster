@@ -36,61 +36,77 @@ function ns.BuildProfileList(parent, onSelect)
   }
   scroll:Child(content)
 
-  local rows        = {}
+  local rowPool     = {}     -- pooled row widgets, re-filled on every Refresh
   local selected    = nil
   local classFilter = nil    -- nil = show all
   local specFilter  = false  -- true = also narrow to the player's current spec
+  local Refresh              -- forward-declared; row onClick closures call it
 
-  local function Refresh()
-    for _, r in ipairs(rows) do r:Hide() end
-    rows = {}
-    local profiles = ns.db.profiles
+  -- Rows are pooled because WoW frames are never garbage-collected and
+  -- Refresh runs on every list click — recreating rows leaks frames.
+  local function acquireRow(n)
+    if rowPool[n] then return rowPool[n] end
+    local row = {}
+    row.btn = ui.Button:new{
+      parent   = content,
+      position = {
+        TopLeft = { content, ui.edge.TopLeft, 0, 0 },
+        Width   = LIST_W - PAD * 2,
+        Height  = ROW_H,
+      },
+      onClick = function()
+        selected = row.index
+        onSelect(row.index)
+        Refresh()
+      end,
+    }
+    row.name = ui.Label:new{
+      parent   = row.btn,
+      position = { Left = { row.btn, ui.edge.Left, 4, 0 }, Top = {} },
+    }
+    row.time = ui.Label:new{
+      parent   = row.btn,
+      position = { Left = { row.btn, ui.edge.Left, 4, 0 }, Top = { row.btn, ui.edge.Top, 0, -ROW_H } },
+    }
+    ui.Texture:new{
+      parent   = row.btn,
+      color    = rgba(255, 255, 255, 0.08),
+      position = {
+        BottomLeft  = { row.btn, ui.edge.BottomLeft,  0, 0 },
+        BottomRight = { row.btn, ui.edge.BottomRight, 0, 0 },
+        Height      = 1,
+      },
+    }
+    rowPool[n] = row
+    return row
+  end
+
+  Refresh = function()
     local spec       = GetSpecialization and GetSpecialization()
     local playerSpec = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
-    local y = 0
-    for i, p in ipairs(profiles) do
+    local n, y = 0, 0
+    for i, p in ipairs(ns.db.profiles) do
       local classMatch = not classFilter or p.class == classFilter
       local specMatch  = not specFilter or p.spec == playerSpec
       if classMatch and specMatch then
-      local h = (p.autosave and p.savedAt) and ROW_H * 2 or ROW_H
-      local btn = ui.Button:new{
-        parent   = content,
-        position = {
-          TopLeft = { content, ui.edge.TopLeft, 0, -y },
-          Width   = LIST_W - PAD * 2,
-          Height  = h,
-        },
-        onClick = function()
-          selected = i
-          onSelect(i)
-          Refresh()
-        end,
-      }
-      ui.Label:new{
-        parent   = btn,
-        text     = (selected == i and "|cffffd100> |r" or "  ") .. ProfileLabel(p),
-        position = { Left = { btn, ui.edge.Left, 4, 0 }, Top = {} },
-      }
-      if p.autosave and p.savedAt then
-        ui.Label:new{
-          parent   = btn,
-          text     = "|cff888888  " .. p.savedAt .. "|r",
-          position = { Left = { btn, ui.edge.Left, 4, 0 }, Top = { btn, ui.edge.Top, 0, -ROW_H } },
-        }
-      end
-      ui.Texture:new{
-        parent   = btn,
-        color    = rgba(255, 255, 255, 0.08),
-        position = {
-          BottomLeft  = { btn, ui.edge.BottomLeft,  0, 0 },
-          BottomRight = { btn, ui.edge.BottomRight, 0, 0 },
-          Height      = 1,
-        },
-      }
-      rows[#rows+1] = btn
-      y = y + h
+        n = n + 1
+        local row = acquireRow(n)
+        local h = (p.autosave and p.savedAt) and ROW_H * 2 or ROW_H
+        row.index = i
+        row.btn:TopLeft(content, ui.edge.TopLeft, 0, -y)
+        row.btn:Height(h)
+        row.name:Text((selected == i and "|cffffd100> |r" or "  ") .. ProfileLabel(p))
+        if p.autosave and p.savedAt then
+          row.time:Text("|cff888888  " .. p.savedAt .. "|r")
+          row.time:Show()
+        else
+          row.time:Hide()
+        end
+        row.btn:Show()
+        y = y + h
       end
     end
+    for j = n + 1, #rowPool do rowPool[j].btn:Hide() end
     content:Height(math.max(y, 1))
   end
 

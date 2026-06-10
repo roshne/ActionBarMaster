@@ -57,6 +57,11 @@ end
 ---label reorders it and persists the new order immediately.
 ---@return { Update: fun(profile: table?), GetChecked: fun(): table }
 function ns.BuildBarsGrid(parent)
+  local getIcon       = ns._bar_getIcon
+  local getPetIcon    = ns._bar_getPetIcon
+  local addTooltip    = ns._bar_addTooltip
+  local addPetTooltip = ns._bar_addPetTooltip
+
   local totalW = GRID_X + LABEL_W + GAP + NCOLS * CELL + (NCOLS - 1) * GAP
 
   -- Column headers pinned above the scroll area, always visible
@@ -86,7 +91,8 @@ function ns.BuildBarsGrid(parent)
   }
   scroll:Child(content)
 
-  local rowFrames      = {}
+  local barRows        = {}   -- pooled bar rows, re-filled on every Update
+  local petRow         = nil  -- pooled pet bar row
   local checked        = {}   -- [abmBar | "pet"] = bool; nil means default (checked)
   local currentProfile = nil
   local dragFrom       = nil  -- 1-based index in db.barOrder being dragged
@@ -168,23 +174,170 @@ function ns.BuildBarsGrid(parent)
   -- both so either path correctly ends the drag.
   catcher:SetScript("OnMouseUp", function(_, btn) finalizeDrag(btn) end)
 
+  -- ── Row pool ───────────────────────────────────────────────────────────────
+  -- Rows and cells are created once and re-filled on every Update — WoW frames
+  -- are never garbage-collected, so recreating them leaks memory each refresh.
+
+  local function acquireBarRow(n)
+    if barRows[n] then return barRows[n] end
+    local row = {}  -- fill sets: orderIdx, barLabel, barKey
+    row.rowF = ui.Frame:new{
+      parent   = content,
+      position = {
+        TopLeft = { content, ui.edge.TopLeft, 0, 0 },
+        Width   = totalW,
+        Height  = CELL,
+      },
+    }
+
+    -- Transparent drag handle overlaying the label area; clicking initiates drag
+    local handle = ui.Button:new{
+      parent   = row.rowF,
+      template = "", glow = false,
+      position = {
+        TopLeft = { row.rowF, ui.edge.TopLeft, GRID_X, 0 },
+        Width   = LABEL_W, Height = CELL,
+      },
+      onClick = function() end,
+    }
+    handle:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(handle._widget, "ANCHOR_RIGHT")
+      GameTooltip:AddLine("Drag to reorder", 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    handle:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    handle:SetScript("OnMouseDown", function(_, mbtn)
+      if mbtn ~= "LeftButton" then return end
+      dragFrom = row.orderIdx
+      dragTo   = nil
+      phantomLabel:SetText(row.barLabel)
+      catcher:Show()
+    end)
+    handle:SetScript("OnMouseUp", function(_, mbtn) finalizeDrag(mbtn) end)
+
+    row.chk = ui.CheckButton:new{
+      parent   = row.rowF,
+      position = { TopLeft = { row.rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
+      OnToggle = function(self) checked[row.barKey] = self:Checked() end,
+    }
+
+    -- Bar label (rendered under the transparent handle button)
+    row.label = ui.Label:new{
+      parent = row.rowF, justifyH = "RIGHT",
+      fontObj = "GameFontHighlightSmall",
+      position = { TopLeft = { row.rowF, ui.edge.TopLeft, GRID_X, 0 }, Width = LABEL_W, Height = CELL },
+    }
+
+    row.cells = {}
+    for col = 1, NCOLS do
+      local x = GRID_X + LABEL_W + GAP + (col - 1) * (CELL + GAP)
+      ui.Texture:new{
+        parent = row.rowF, color = rgba(255, 255, 255, 0.05),
+        position = { TopLeft = { row.rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
+      }
+      local btn = ui.Button:new{
+        parent = row.rowF, template = "", glow = false,
+        position = { TopLeft = { row.rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
+      }
+      local icon = ui.Texture:new{
+        parent   = btn,
+        position = { TopLeft = { btn, ui.edge.TopLeft, 1, -1 }, Width = CELL - 2, Height = CELL - 2, Hide = true },
+      }
+      local num = ui.Label:new{
+        parent = btn, justifyH = "LEFT",
+        fontObj = "GameFontHighlightSmall",
+        position = { TopLeft = { btn, ui.edge.TopLeft, 2, -1 }, Width = 20, Height = 10 },
+      }
+      row.cells[col] = { btn = btn, icon = icon, num = num }
+    end
+
+    barRows[n] = row
+    return row
+  end
+
+  local function fillCell(cell, slotID, entry, macros)
+    local icon = entry and getIcon(entry, macros)
+    if icon then
+      cell.icon:Texture(icon)
+      cell.icon:Show()
+      addTooltip(cell.btn, entry, macros)
+      cell.num:TopLeft(cell.btn, ui.edge.TopLeft, 4, -4)
+    else
+      cell.icon:Hide()
+      cell.btn:SetScript("OnEnter", nil)
+      cell.btn:SetScript("OnLeave", nil)
+      cell.num:TopLeft(cell.btn, ui.edge.TopLeft, 2, -1)
+    end
+    cell.num:Text(tostring(slotID))
+  end
+
+  local function acquirePetRow()
+    if petRow then return petRow end
+    petRow = {}
+    petRow.rowF = ui.Frame:new{
+      parent   = content,
+      position = {
+        TopLeft = { content, ui.edge.TopLeft, 0, 0 },
+        Width   = totalW,
+        Height  = CELL,
+      },
+    }
+    petRow.chk = ui.CheckButton:new{
+      parent   = petRow.rowF,
+      position = { TopLeft = { petRow.rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
+      OnToggle = function(self) checked.pet = self:Checked() end,
+    }
+    ui.Label:new{
+      parent = petRow.rowF, text = "Pet Bar", justifyH = "RIGHT",
+      fontObj = "GameFontHighlightSmall",
+      position = { TopLeft = { petRow.rowF, ui.edge.TopLeft, GRID_X, 0 }, Width = LABEL_W, Height = CELL },
+    }
+    petRow.cells = {}
+    for col = 1, NUM_PET_SLOTS do
+      local x = GRID_X + LABEL_W + GAP + (col - 1) * (CELL + GAP)
+      ui.Texture:new{
+        parent = petRow.rowF, color = rgba(255, 255, 255, 0.05),
+        position = { TopLeft = { petRow.rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
+      }
+      local btn = ui.Button:new{
+        parent = petRow.rowF, template = "", glow = false,
+        position = { TopLeft = { petRow.rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
+      }
+      local icon = ui.Texture:new{
+        parent   = btn,
+        position = { TopLeft = { btn, ui.edge.TopLeft, 1, -1 }, Width = CELL - 2, Height = CELL - 2, Hide = true },
+      }
+      petRow.cells[col] = { btn = btn, icon = icon }
+    end
+    return petRow
+  end
+
+  local function fillPetCell(cell, entry)
+    local icon = entry and getPetIcon(entry)
+    if icon then
+      cell.icon:Texture(icon)
+      cell.icon:Show()
+      addPetTooltip(cell.btn, entry)
+    else
+      cell.icon:Hide()
+      cell.btn:SetScript("OnEnter", nil)
+      cell.btn:SetScript("OnLeave", nil)
+    end
+  end
+
   -- ── Update ────────────────────────────────────────────────────────────────
 
   Update = function(profile)
     currentProfile = profile
-    for _, fr in ipairs(rowFrames) do fr:Hide() end
-    rowFrames = {}
 
     if not (profile and profile.slots) then
+      for _, row in ipairs(barRows) do row.rowF:Hide() end
+      if petRow then petRow.rowF:Hide() end
       content:Height(1)
       return
     end
 
-    local macros        = profile.macros or {}
-    local getIcon       = ns._bar_getIcon
-    local getPetIcon    = ns._bar_getPetIcon
-    local addTooltip    = ns._bar_addTooltip
-    local addPetTooltip = ns._bar_addPetTooltip
+    local macros = profile.macros or {}
 
     local slotMap = {}
     for _, entry in ipairs(profile.slots) do
@@ -200,157 +353,37 @@ function ns.BuildBarsGrid(parent)
     local totalRows   = 0
 
     for rowIdx, barDef in ipairs(activeOrder) do
-      local y = totalRows * (CELL + GAP)
-
-      local rowF = ui.Frame:new{
-        parent   = content,
-        position = {
-          TopLeft = { content, ui.edge.TopLeft, 0, -y },
-          Width   = totalW,
-          Height  = CELL,
-        },
-      }
-      rowFrames[#rowFrames + 1] = rowF
-
-      -- Transparent drag handle overlaying the label area; clicking initiates drag
-      local capturedIdx = rowIdx
-      local capturedLabel = barDef.label
-      local handle = ui.Button:new{
-        parent   = rowF,
-        template = "", glow = false,
-        position = {
-          TopLeft = { rowF, ui.edge.TopLeft, GRID_X, 0 },
-          Width   = LABEL_W, Height = CELL,
-        },
-        onClick = function() end,
-      }
-      handle:SetScript("OnEnter", function()
-        GameTooltip:SetOwner(handle._widget, "ANCHOR_RIGHT")
-        GameTooltip:AddLine("Drag to reorder", 1, 1, 1)
-        GameTooltip:Show()
-      end)
-      handle:SetScript("OnLeave", function() GameTooltip:Hide() end)
-      handle:SetScript("OnMouseDown", function(_, btn)
-        if btn ~= "LeftButton" then return end
-        dragFrom = capturedIdx
-        dragTo   = nil
-        phantomLabel:SetText(capturedLabel)
-        catcher:Show()
-      end)
-      handle:SetScript("OnMouseUp", function(_, btn) finalizeDrag(btn) end)
-
-      -- Checkbox
-      local barKey = barDef.abm
-      local chk = ui.CheckButton:new{
-        parent   = rowF,
-        position = { TopLeft = { rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
-        OnToggle = function(self) checked[barKey] = self:Checked() end,
-      }
-      chk:Checked(isChecked(barKey))
-
-      -- Bar label (rendered under the transparent handle button)
-      ui.Label:new{
-        parent = rowF, text = barDef.label, justifyH = "RIGHT",
-        fontObj = "GameFontHighlightSmall",
-        position = { TopLeft = { rowF, ui.edge.TopLeft, GRID_X, 0 }, Width = LABEL_W, Height = CELL },
-      }
-
-      -- Slot cells
+      local row = acquireBarRow(rowIdx)
+      row.orderIdx = rowIdx
+      row.barLabel = barDef.label
+      row.barKey   = barDef.abm
+      row.rowF:TopLeft(content, ui.edge.TopLeft, 0, -totalRows * (CELL + GAP))
+      row.label:Text(barDef.label)
+      row.chk:Checked(isChecked(barDef.abm))
       for col = 1, NCOLS do
-        local x = GRID_X + LABEL_W + GAP + (col - 1) * (CELL + GAP)
-
-        ui.Texture:new{
-          parent = rowF, color = rgba(255, 255, 255, 0.05),
-          position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
-        }
-
-        local labelParent = rowF
-        local labelOffX   = x + 2
-        local labelOffY   = -1
-
-        local slotID = (barDef.abm - 1) * NCOLS + col
-        local entry  = slotMap[barDef.abm] and slotMap[barDef.abm][col]
-        if entry then
-          local icon = getIcon(entry, macros)
-          if icon then
-            local cellBtn = ui.Button:new{
-              parent = rowF, template = "", glow = false,
-              position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
-            }
-            ui.Texture:new{
-              parent = cellBtn, path = icon,
-              position = { TopLeft = { cellBtn, ui.edge.TopLeft, 1, -1 }, Width = CELL - 2, Height = CELL - 2 },
-            }
-            addTooltip(cellBtn, entry, macros)
-            labelParent = cellBtn
-            labelOffX   = 4
-            labelOffY   = -4
-          end
-        end
-
-        ui.Label:new{
-          parent = labelParent, text = tostring(slotID), justifyH = "LEFT",
-          fontObj = "GameFontHighlightSmall",
-          position = { TopLeft = { labelParent, ui.edge.TopLeft, labelOffX, labelOffY }, Width = 20, Height = 10 },
-        }
+        fillCell(row.cells[col], (barDef.abm - 1) * NCOLS + col,
+          slotMap[barDef.abm] and slotMap[barDef.abm][col], macros)
       end
-
+      row.rowF:Show()
       totalRows = totalRows + 1
     end
+    for j = #activeOrder + 1, #barRows do barRows[j].rowF:Hide() end
 
     -- Pet bar: always at bottom, not user-reorderable
     local petslots = profile.petslots
     if petslots and #petslots > 0 then
-      local y = totalRows * (CELL + GAP)
-      local rowF = ui.Frame:new{
-        parent   = content,
-        position = {
-          TopLeft = { content, ui.edge.TopLeft, 0, -y },
-          Width   = totalW, Height = CELL,
-        },
-      }
-      rowFrames[#rowFrames + 1] = rowF
-
-      local petChk = ui.CheckButton:new{
-        parent   = rowF,
-        position = { TopLeft = { rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
-        OnToggle = function(self) checked.pet = self:Checked() end,
-      }
-      petChk:Checked(isChecked("pet"))
-
-      ui.Label:new{
-        parent = rowF, text = "Pet Bar", justifyH = "RIGHT",
-        fontObj = "GameFontHighlightSmall",
-        position = { TopLeft = { rowF, ui.edge.TopLeft, GRID_X, 0 }, Width = LABEL_W, Height = CELL },
-      }
-
+      local row = acquirePetRow()
+      row.rowF:TopLeft(content, ui.edge.TopLeft, 0, -totalRows * (CELL + GAP))
+      row.chk:Checked(isChecked("pet"))
       local petMap = {}
       for _, entry in ipairs(petslots) do petMap[entry.id] = entry end
-
       for col = 1, NUM_PET_SLOTS do
-        local x = GRID_X + LABEL_W + GAP + (col - 1) * (CELL + GAP)
-        ui.Texture:new{
-          parent = rowF, color = rgba(255, 255, 255, 0.05),
-          position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
-        }
-        local entry = petMap[col]
-        if entry then
-          local icon = getPetIcon(entry)
-          if icon then
-            local cellBtn = ui.Button:new{
-              parent = rowF, template = "", glow = false,
-              position = { TopLeft = { rowF, ui.edge.TopLeft, x, 0 }, Width = CELL, Height = CELL },
-            }
-            ui.Texture:new{
-              parent = cellBtn, path = icon,
-              position = { TopLeft = { cellBtn, ui.edge.TopLeft, 1, -1 }, Width = CELL - 2, Height = CELL - 2 },
-            }
-            addPetTooltip(cellBtn, entry)
-          end
-        end
+        fillPetCell(row.cells[col], petMap[col])
       end
-
+      row.rowF:Show()
       totalRows = totalRows + 1
+    elseif petRow then
+      petRow.rowF:Hide()
     end
 
     content:Height(math.max(totalRows * (CELL + GAP), 1))
@@ -374,10 +407,11 @@ function ns.BuildBarsGrid(parent)
         local order = ns.db.barOrder
         local moved = table.remove(order, from)
         table.insert(order, insertPos, moved)
+        -- Only rebuild when the order actually changed; a plain click on a
+        -- handle also lands here with a no-op drop
+        if currentProfile then Update(currentProfile) end
       end
     end
-
-    if currentProfile then Update(currentProfile) end
   end
 
   return { Update = Update, GetChecked = function() return checked end }

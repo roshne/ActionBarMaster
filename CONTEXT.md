@@ -156,7 +156,9 @@ The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current 
 
 ## Bars Grid (`barsview.lua`)
 
-`BuildBarsGrid` renders a scrollable grid of 46×46 icon cells: 15 bars × 12 slots plus an optional Pet row. Column headers are pinned above the scroll area. `Update(profile)` rebuilds rows from profile data; `Update(nil)` clears the grid. Tooltips use `GameTooltip:SetOwner` with `ANCHOR_TOPRIGHT`. Icons resolved per slot type via `getIcon` / `getPetIcon`.
+`BuildBarsGrid` renders a scrollable grid of 46×46 icon cells: 15 bars × 12 slots plus an optional Pet row. Column headers are pinned above the scroll area. `Update(profile)` re-fills rows from profile data; `Update(nil)` clears the grid. Tooltips use `GameTooltip:SetOwner` with `ANCHOR_TOPRIGHT`. Icons resolved per slot type via `getIcon` / `getPetIcon`.
+
+Rows and cells are **pooled** (`acquireBarRow` / `acquirePetRow`): created once, re-filled and repositioned on every `Update`, hidden when unused — WoW frames are never garbage-collected, so widgets must not be recreated per refresh. Cell buttons always exist; empty cells hide the icon texture and nil out the tooltip scripts. Handle/checkbox closures read the row's `orderIdx` / `barLabel` / `barKey` fields, which fill updates in place. The profile list in `profilelist.lua` uses the same pattern (`acquireRow`), since its `Refresh` runs on every list click.
 
 ---
 
