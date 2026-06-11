@@ -4,11 +4,9 @@ local PickupSpell  = C_Spell and C_Spell.PickupSpell or _G.PickupSpell
 local GetSpellName = C_Spell and C_Spell.GetSpellName
                   or function(id) return (GetSpellInfo(id)) end
 
----Returns { [spellName] = { ordinal=N, slot=M } } for all spells in current character's
----primary professions. Used at capture time to match action bar spells to professions.
-function ns.GetProfessionNameMap()
-  local map = {}
-  if not GetProfessions then return map end
+local function BuildMaps()
+  local byName, byID = {}, {}
+  if not GetProfessions then return byName, byID end
   -- GetProfessions returns (prof1, prof2, archaeology, fishing, cooking) with nil
   -- holes — ipairs would stop at the first nil and skip fishing/cooking
   for ordinal = 1, 5 do
@@ -16,15 +14,16 @@ function ns.GetProfessionNameMap()
     if profIdx then
       local profName, _, _, _, numItems, spellOffset = GetProfessionInfo(profIdx)
       if profName then
-        if not map[profName] then map[profName] = { ordinal = ordinal, slot = 1 } end
+        if not byName[profName] then byName[profName] = { ordinal = ordinal, slot = 1 } end
         if numItems and spellOffset and C_SpellBook then
           local bank = Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
           if bank then
             for i = 1, numItems do
               local _, _, spellID = C_SpellBook.GetSpellBookItemType(spellOffset + i, bank)
               if spellID then
+                byID[spellID] = { ordinal = ordinal, slot = i }
                 local name = GetSpellName(spellID)
-                if name then map[name] = { ordinal = ordinal, slot = i } end
+                if name then byName[name] = { ordinal = ordinal, slot = i } end
               end
             end
           end
@@ -32,7 +31,21 @@ function ns.GetProfessionNameMap()
       end
     end
   end
-  return map
+  return byName, byID
+end
+
+---Returns { [spellName] = { ordinal=N, slot=M } } for all spells in current character's
+---professions. Used to resolve old profiles' name-only profession entries.
+function ns.GetProfessionNameMap()
+  return (BuildMaps())
+end
+
+---Returns { [spellID] = { ordinal=N, slot=M } } for all spells in current character's
+---professions. Used at capture time — matching by spell ID avoids misclassifying
+---unrelated spells that share a name with a profession spell (e.g. an item-granted
+---"Survey" colliding with Archaeology's "Survey").
+function ns.GetProfessionSpellMap()
+  return select(2, BuildMaps())
 end
 
 ---Returns the spell ID for a spell at `slot` within the current character's Nth primary profession.

@@ -59,7 +59,8 @@ ns.BuildExportDialog(parent)          -- → dialog (._box); read-only encoded t
 ns.BuildImportDialog(parent, onImport) -- → dialog (._box); decodes paste, calls onImport(profile)
 ns.GetRacialSpells(race, class)       -- → ordered array of spell IDs
 ns.GetRacialSpellSet(race, class)     -- → { [spellID] = ordinal }
-ns.GetProfessionNameMap()             -- → { [spellName] = { ordinal=N, slot=M } }
+ns.GetProfessionNameMap()             -- → { [spellName] = { ordinal=N, slot=M } } (old-profile fallback)
+ns.GetProfessionSpellMap()            -- → { [spellID] = { ordinal=N, slot=M } } (capture-time match)
 ns.GetProfessionSpellID(ordinal, slot)-- → spellID or nil
 ns.PickupProfessionSpell(ordinal, slot, name) -- puts spell on cursor
 ns.Print(msg)                         -- addon-prefixed chat print (from LibNAddOn)
@@ -174,7 +175,7 @@ profile = {
 
 ## Professions (`libs/professions.lua`)
 
-`GetProfessionNameMap` iterates `GetProfessions()` → `GetProfessionInfo()` → spellbook entries to build a `{ [spellName] = { ordinal, slot } }` lookup used at capture time. `PickupProfessionSpell` tries slot-based lookup first (portable), then name-match fallback (for old profiles without `profSlot`), then slot 1 as a last resort.
+One spellbook pass (`GetProfessions()` → `GetProfessionInfo()` → spellbook entries) builds two lookups: `GetProfessionSpellMap` (`{ [spellID] = { ordinal, slot } }`, used at **capture** time — ID matching avoids misclassifying unrelated spells that share a name with a profession spell, e.g. an item-granted "Survey" vs Archaeology's "Survey") and `GetProfessionNameMap` (`{ [spellName] = ... }`, used only to resolve old profiles' name-only entries, e.g. in `barsicons.lua`). `PickupProfessionSpell` tries slot-based lookup first (portable), then name-match fallback (for old profiles without `profSlot`), then slot 1 as a last resort.
 
 ---
 

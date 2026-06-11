@@ -70,6 +70,17 @@ maps nothing at all.
 Fix: `for ordinal = 1, 5 do local profIdx = select(ordinal, GetProfessions()) ... end`
 (capture/restore stay consistent because both sides use the same ordinal).
 
+### B10. Capture classifies professions by spell *name*, corrupting look-alike spells — **fixed**
+*(Found in user testing 2026-06-11, post-B6.)* `capture.lua` matched bar spells against
+`GetProfessionNameMap()` by name. Any spell sharing a name with a profession spellbook
+entry — e.g. an item-granted "Survey" colliding with Archaeology's "Survey" — was stored
+as `type="profession"` with the real spell ID discarded. Restoring on a character without
+that profession produced a bogus "No profession in slot #N" warning and blanked the slot;
+on a character *with* it, the wrong spell was placed. Fixed by matching on spell ID
+(`GetProfessionSpellMap`); the name map remains only for resolving old profiles'
+name-only entries. Profiles captured before the fix may still carry misclassified
+entries — re-capture (or let autosave refresh) to clean them.
+
 ## Bugs — likely / hazard
 
 ### B7. Stale profile indices around confirm popups can delete the wrong profile
@@ -82,7 +93,9 @@ autosave events).
 Fix: stash the profile *table reference* and locate it by identity at accept time; treat
 selection the same way.
 
-### B8. `GetOverrideSpell` nil-result would abort Capture/Restore map builds — **fixed**
+### B8. `GetOverrideSpell` nil-result would abort Capture/Restore map builds — **fixed, probe-verified**
+*(Temporary `/bars debug overrides` probe, 2026-06-11: 0 nil returns across 106 spells and
+27 flyout slots on a Druid in normal and Bear form — the guard is pure hardening.)*
 `capture.lua:19-20`, `restore.lua:57-58`. If `C_Spell.GetOverrideSpell` ever returns nil
 for an odd spellbook entry, `map[nil] = ...` throws "table index is nil" — Capture errors
 (and autosave re-errors every retry). One-line hardening: `if ovr and ovr ~= spellId`.
