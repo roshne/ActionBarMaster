@@ -9,7 +9,7 @@ Carry-over open items are listed at the end. WoW API claims verified against
 
 ## Bugs — confirmed
 
-### B1. Mount restore depends on the journal's filter state and uses the wrong loop bound — **fixed**
+### B1. Mount restore depends on the journal's filter state and uses the wrong loop bound — **open; first fix reverted**
 `restore.lua:173-181`. The loop runs `i = 1, C_MountJournal.GetNumMounts()` but indexes
 `GetDisplayedMountInfo(i)` — the **displayed** (filtered/searched) list, whose bound is
 `GetNumDisplayedMounts()` (see Blizzard_MountCollection.lua:662). Consequences:
@@ -22,6 +22,14 @@ Carry-over open items are listed at the end. WoW API claims verified against
 
 Fix: resolve via `C_MountJournal.GetMountInfoByID(s.index)` → `PickupSpell(spellID)` (works
 regardless of filters), or at minimum loop `GetNumDisplayedMounts()` and warn+blank on miss.
+
+**2026-06-11 fix attempt reverted** — switching to `GetNumDisplayedMounts()` +
+`Pickup(displayedIndex)` with a `PickupSpell(mount spell)` fallback stopped mounts restoring
+entirely in-game, while the original code works in practice. Open questions before retrying:
+whether `C_MountJournal.Pickup` expects a 0-based index (the working `Pickup(0)` fallback
+hints it might, making a 1-based displayed loop off by one), and whether `PickupSpell`
+accepts mount summon spell IDs at all. Needs in-game `/dump` investigation of
+`Pickup`/`GetDisplayedMountInfo` index alignment before a second attempt.
 
 ### B2. Toy "not in Toy Box" check reads itemQuality, not ownership — **fixed**
 `restore.lua:145`. `select(6, C_ToyBox.GetToyInfo(id))` is **itemQuality**

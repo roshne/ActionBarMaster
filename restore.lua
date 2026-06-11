@@ -171,24 +171,14 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() then C_PetJournal.PickupPet(s.strindex, true) end
         if not GetCursorInfo() then Warn(slot .. "Missing pet [" .. tostring(s.strindex) .. "]") end
       elseif s.type == "summonmount" then
+        local mi
         if C_MountJournal then
-          -- The displayed list honors journal filters/search; Pickup takes a displayed index
-          for i = 1, C_MountJournal.GetNumDisplayedMounts() do
-            local _, _, _, _, _, _, _, _, _, _, isCollected, mid = C_MountJournal.GetDisplayedMountInfo(i)
-            if isCollected and mid == s.index then
-              C_MountJournal.Pickup(i)
-              break
-            end
-          end
-          -- mount filtered out of the displayed list; fall back to its summon spell
-          if not GetCursorInfo() then
-            local name, spellID, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(s.index)
-            if isCollected and spellID then PickupSpell(spellID) end
-            if not GetCursorInfo() then
-              Warn(slot .. "Missing mount " .. (name and ("[" .. name .. "]") or ("#" .. tostring(s.index))))
-            end
+          for i = 1, C_MountJournal.GetNumMounts() do
+            local _, _, _, _, _, _, _, _, _, _, mountCol, mid = C_MountJournal.GetDisplayedMountInfo(i)
+            if mountCol and mid == s.index then mi = i; break end
           end
         end
+        if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
       elseif s.type == "equipmentset" then
         if C_EquipmentSet then
           local setIDs = C_EquipmentSet.GetEquipmentSetIDs()
