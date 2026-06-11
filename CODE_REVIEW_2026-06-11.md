@@ -70,6 +70,29 @@ maps nothing at all.
 Fix: `for ordinal = 1, 5 do local profIdx = select(ordinal, GetProfessions()) ... end`
 (capture/restore stay consistent because both sides use the same ordinal).
 
+### B10. Capture classified professions by spell *name* — latent collision hazard — **fixed**
+*(Investigated 2026-06-11 after a user report; PR #43.)* `capture.lua` matched bar spells
+against `GetProfessionNameMap()` by name, so any spell sharing a name with a profession
+spellbook entry would be stored as `type="profession"` with the real spell ID discarded.
+Fixed by matching on spell ID (`GetProfessionSpellMap`); the name map remains only for
+resolving old profiles' name-only entries.
+The triggering report itself turned out to be the warning-label mismatch (internal bar
+numbers vs UI labels — fixed in the same PR) plus cryptic wording: the profile's
+Archaeology/Survey entries were genuine, and the load target simply lacked Archaeology
+(probe-confirmed: `GetProfessions()` ordinal 3 nil). The probe also confirmed
+`PickupSpell` works for all profession spells (both pickup mechanisms OK across Mining,
+Jewelcrafting, Fishing, Cooking), and grid cells for unresolvable entries now show a
+question-mark icon with tooltip instead of rendering blank. Profession-skip warnings
+reworded to name the spell and the reason ("skipped [Survey] — profession not learned").
+
+### B11. `companion` slot type captured but unhandled everywhere downstream — **fixed**
+*(Found in user testing 2026-06-11: a legacy pre-journal mount button — companion spell
+44151 — on a live profile.)* Capture stored `type="companion"` (index = summon spell ID),
+but `barsicons.lua` had no icon or tooltip branch (placeholder icon, empty tooltip) and
+`RestoreSlots` had no restore branch — the slot fell through every `elseif` and was
+silently **blanked on every restore**. Fixed: icon via `spellTex`, tooltip via
+`SetSpellByID`, restore via `PickupSpell` (warn on miss).
+
 ## Bugs — likely / hazard
 
 ### B7. Stale profile indices around confirm popups can delete the wrong profile
@@ -82,7 +105,9 @@ autosave events).
 Fix: stash the profile *table reference* and locate it by identity at accept time; treat
 selection the same way.
 
-### B8. `GetOverrideSpell` nil-result would abort Capture/Restore map builds — **fixed**
+### B8. `GetOverrideSpell` nil-result would abort Capture/Restore map builds — **fixed, probe-verified**
+*(Temporary `/bars debug overrides` probe, 2026-06-11: 0 nil returns across 106 spells and
+27 flyout slots on a Druid in normal and Bear form — the guard is pure hardening.)*
 `capture.lua:19-20`, `restore.lua:57-58`. If `C_Spell.GetOverrideSpell` ever returns nil
 for an odd spellbook entry, `map[nil] = ...` throws "table index is nil" — Capture errors
 (and autosave re-errors every retry). One-line hardening: `if ovr and ovr ~= spellId`.

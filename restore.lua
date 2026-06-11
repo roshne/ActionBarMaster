@@ -75,7 +75,9 @@ end
 local function slotLabel(id)
   local bar = math.floor((id - 1) / 12) + 1
   local col = ((id - 1) % 12) + 1
-  return "bar " .. bar .. " slot " .. col .. ": "
+  -- UI display label ("Bar 3", "Bonus", "Class 1", ...), not the internal bar
+  -- number — internal bars 2-6 carry different display names in the grid
+  return ns.GetBarLabel(bar) .. " slot " .. col .. ": "
 end
 
 -- Flyout slots must be restored first, before any other PickupSpell/PlaceAction calls
@@ -160,8 +162,10 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       elseif s.type == "profession" then
         ns.PickupProfessionSpell(s.index, s.profSlot, s.strindex)
         if not GetCursorInfo() then
-          Warn(slot .. "No profession in slot #" .. s.index
-            .. (s.strindex and " [" .. s.strindex .. "]" or ""))
+          local what = s.strindex and ("[" .. s.strindex .. "]") or ("profession spell #" .. s.index)
+          local why  = (GetProfessions and not select(s.index, GetProfessions()))
+            and "profession not learned" or "spell not found"
+          Warn(slot .. "skipped " .. what .. " — " .. why)
         end
       elseif s.type == "macro" then
         -- handled in RestoreMacros pass; skip here
@@ -179,6 +183,12 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           end
         end
         if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
+      elseif s.type == "companion" then
+        -- legacy pre-journal mount/mini-pet action; index is the summon spell ID
+        PickupSpell(s.index)
+        if not GetCursorInfo() then
+          Warn(slot .. "Missing companion " .. (GetSpellLink(s.index) or ("spell " .. s.index)))
+        end
       elseif s.type == "equipmentset" then
         if C_EquipmentSet then
           local setIDs = C_EquipmentSet.GetEquipmentSetIDs()

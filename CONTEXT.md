@@ -23,7 +23,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 | `profilelist.lua` | `ns.BuildProfileList(parent, onSelect) → scroll, Refresh, GetSelected, SetSelected, SetClassFilter`; pooled rows |
 | `classfilter.lua` | `ns.BuildClassFilter(parent, position, onSelect)` — class dropdown filter widget |
 | `barsicons.lua` | Icon + tooltip resolvers per slot type (`ns._bar_getIcon` / `_getPetIcon` / `_addTooltip` / `_addPetTooltip`) |
-| `barsview_defs.lua` | `BAR_DEFS` (abm ↔ display label) + `ns.GetActiveBarOrder()` from `db.barOrder` |
+| `barsview_defs.lua` | `BAR_DEFS` (abm ↔ display label) + `ns.GetActiveBarOrder()` from `db.barOrder` + `ns.GetBarLabel(abm)` |
 | `barsview_drag.lua` | `ns.BuildRowDrag(opts)` — phantom row / drop line / catcher drag-to-reorder machinery |
 | `barsview.lua` | `ns.BuildBarsGrid(parent) → { Update(profile?), GetChecked() }` — pooled icon grid preview |
 | `window.lua` | Main UI window — wires list, filter, grid, buttons, and static popups together |
@@ -54,12 +54,14 @@ ns.BuildClassFilter(parent, pos, onSelect)  -- class dropdown; calls onSelect(cl
 ns.BuildBarsGrid(parent)              -- → { Update(profile?), GetChecked() } pooled icon grid
 ns.BuildRowDrag(opts)                 -- → { Start(orderIdx, label), Finish(mouseButton) } drag-to-reorder
 ns.GetActiveBarOrder()                -- → ordered { abm, label } defs from db.barOrder
+ns.GetBarLabel(abm)                   -- → UI display label for an abm bar number (5 -> "Bar 3")
 ns.BuildSaveDialog(parent, onSaved)   -- → dialog (._nameBox); Save Profile modal
 ns.BuildExportDialog(parent)          -- → dialog (._box); read-only encoded text
 ns.BuildImportDialog(parent, onImport) -- → dialog (._box); decodes paste, calls onImport(profile)
 ns.GetRacialSpells(race, class)       -- → ordered array of spell IDs
 ns.GetRacialSpellSet(race, class)     -- → { [spellID] = ordinal }
-ns.GetProfessionNameMap()             -- → { [spellName] = { ordinal=N, slot=M } }
+ns.GetProfessionNameMap()             -- → { [spellName] = { ordinal=N, slot=M } } (old-profile fallback)
+ns.GetProfessionSpellMap()            -- → { [spellID] = { ordinal=N, slot=M } } (capture-time match)
 ns.GetProfessionSpellID(ordinal, slot)-- → spellID or nil
 ns.PickupProfessionSpell(ordinal, slot, name) -- puts spell on cursor
 ns.Print(msg)                         -- addon-prefixed chat print (from LibNAddOn)
@@ -138,7 +140,7 @@ profile = {
 | `"summonmount"` | mount ID | — |
 | `"equipmentset"` | position in set ID array | — |
 | `"outfit"` | position in outfit list | — |
-| `"companion"` | companion ID | — |
+| `"companion"` | summon spell ID (legacy pre-journal mount/pet action) | — |
 | `"petaction"` / `"futurespell"` | — | — (cleared on restore) |
 
 ---
@@ -174,7 +176,7 @@ profile = {
 
 ## Professions (`libs/professions.lua`)
 
-`GetProfessionNameMap` iterates `GetProfessions()` → `GetProfessionInfo()` → spellbook entries to build a `{ [spellName] = { ordinal, slot } }` lookup used at capture time. `PickupProfessionSpell` tries slot-based lookup first (portable), then name-match fallback (for old profiles without `profSlot`), then slot 1 as a last resort.
+One spellbook pass (`GetProfessions()` → `GetProfessionInfo()` → spellbook entries) builds two lookups: `GetProfessionSpellMap` (`{ [spellID] = { ordinal, slot } }`, used at **capture** time — ID matching avoids misclassifying unrelated spells that share a name with a profession spell, e.g. an item-granted "Survey" vs Archaeology's "Survey") and `GetProfessionNameMap` (`{ [spellName] = ... }`, used only to resolve old profiles' name-only entries, e.g. in `barsicons.lua`). `PickupProfessionSpell` tries slot-based lookup first (portable), then name-match fallback (for old profiles without `profSlot`), then slot 1 as a last resort.
 
 ---
 

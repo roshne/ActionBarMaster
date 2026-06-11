@@ -171,8 +171,18 @@ function ns.BuildBarsGrid(parent)
     return row
   end
 
+  -- Placeholder for entries the viewing character can't resolve (professions it
+  -- hasn't learned, uncached items, ...). A bundled texture, NOT
+  -- INV_Misc_QuestionMark — the game assigns that icon to outfits it has no icon
+  -- for, so it would be indistinguishable from a real outfit entry in the grid.
+  -- PNG (supported since 10.1), not TGA: the client read the TGA's channel
+  -- order as swapped (red rendered teal in-game)
+  local UNRESOLVED_TEX = "Interface\\AddOns\\ActionBarMaster\\textures\\unresolved.png"
+
   local function fillCell(cell, slotID, entry, macros)
-    local icon = entry and getIcon(entry, macros)
+    -- unresolvable entries still occupy the slot: show the placeholder and
+    -- keep the tooltip (which has per-type text fallbacks) instead of blank
+    local icon = entry and (getIcon(entry, macros) or UNRESOLVED_TEX)
     if icon then
       cell.icon:Texture(icon)
       cell.icon:Show()
@@ -229,7 +239,7 @@ function ns.BuildBarsGrid(parent)
   end
 
   local function fillPetCell(cell, entry)
-    local icon = entry and getPetIcon(entry)
+    local icon = entry and (getPetIcon(entry) or UNRESOLVED_TEX)
     if icon then
       cell.icon:Texture(icon)
       cell.icon:Show()

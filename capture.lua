@@ -37,9 +37,9 @@ local GetSpellNameFn = C_Spell and C_Spell.GetSpellName
 
 -- Capture all non-empty action bar slots.
 -- includeOutfits:  when false, slots of type "outfit" are skipped.
--- racialSet:       { [spellID] = ordinal }     racial spells stored as type="racial"
--- profNameMap:     { [profName] = ordinal }    profession spells detected by name match
-local function CaptureSlots(overrides, includeOutfits, racialSet, profNameMap)
+-- racialSet:       { [spellID] = ordinal }            racial spells stored as type="racial"
+-- profSpellMap:    { [spellID] = {ordinal, slot} }    profession spells matched by spell ID
+local function CaptureSlots(overrides, includeOutfits, racialSet, profSpellMap)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
@@ -52,10 +52,9 @@ local function CaptureSlots(overrides, includeOutfits, racialSet, profNameMap)
           if subType == "assistedcombat" then
             entry.index = C_AssistedCombat.GetActionSpell()
           else
-            local spellID    = overrides[index] or index
-            local racialN    = racialSet[spellID]
-            local spellName = not racialN and GetSpellNameFn(spellID)
-            local profInfo  = spellName and profNameMap[spellName]
+            local spellID   = overrides[index] or index
+            local racialN   = racialSet[spellID]
+            local profInfo  = not racialN and profSpellMap[spellID]
             if racialN then
               entry.type  = "racial"
               entry.index = racialN
@@ -63,7 +62,7 @@ local function CaptureSlots(overrides, includeOutfits, racialSet, profNameMap)
               entry.type     = "profession"
               entry.index    = profInfo.ordinal
               entry.profSlot = profInfo.slot
-              entry.strindex = spellName
+              entry.strindex = GetSpellNameFn(spellID)
             else
               entry.index = spellID
             end
@@ -164,10 +163,10 @@ function ns.Capture()
   local _, race            = UnitRace("player")
   local _, class           = UnitClass("player")
   local racialSet          = ns.GetRacialSpellSet(race, class)
-  local profNameMap = ns.GetProfessionNameMap()
+  local profSpellMap       = ns.GetProfessionSpellMap()
   local profile = ProfileMeta()
   profile.version  = 1
-  profile.slots    = CaptureSlots(overrides, true, racialSet, profNameMap)
+  profile.slots    = CaptureSlots(overrides, true, racialSet, profSpellMap)
   profile.binds    = CaptureBindings()
   profile.macros   = CaptureMacros()
   profile.petslots = CapturePetBar()

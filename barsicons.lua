@@ -46,6 +46,9 @@ local function getIcon(entry, macros)
   elseif t == "summonmount" then
     local _, _, icon = C_MountJournal.GetMountInfoByID(entry.index)
     return icon
+  elseif t == "companion" then
+    -- legacy pre-journal mount/mini-pet action; index is the summon spell ID
+    return spellTex(entry.index)
   elseif t == "equipmentset" then
     local ids   = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
     local setID = ids and ids[entry.index]
@@ -91,6 +94,8 @@ local function addTooltip(btn, entry, macros)
     elseif t == "summonmount" then
       local _, spellID = C_MountJournal.GetMountInfoByID(entry.index)
       if spellID then GameTooltip:SetSpellByID(spellID) end
+    elseif t == "companion" then
+      GameTooltip:SetSpellByID(entry.index)
     elseif t == "equipmentset" then
       local ids   = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
       local setID = ids and ids[entry.index]
