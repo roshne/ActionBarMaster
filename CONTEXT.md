@@ -51,7 +51,7 @@ ns.RestorePetBar(petslots)            -- apply pet bar (no-op without active pet
 ns.ClearUnusedSlots(slots, barFilter?) -- blank action slots absent from profile
 ns.BuildProfileList(parent, onSelect) -- → scroll, Refresh(), GetSelected(), SetSelected(i), SetClassFilter(key, specOnly)
 ns.BuildClassFilter(parent, pos, onSelect)  -- class dropdown; calls onSelect(classKey|nil, specOnly)
-ns.BuildBarsGrid(parent, onCheckedChanged?) -- → { Update(profile?), GetChecked(), AllChecked(), SetAllChecked(v) } pooled icon grid
+ns.BuildBarsGrid(parent)              -- → { Update(profile?), GetChecked(), SetAllChecked(v) } pooled icon grid
 ns.BuildRowDrag(opts)                 -- → { Start(orderIdx, label), Finish(mouseButton) } drag-to-reorder
 ns.GetActiveBarOrder()                -- → ordered { abm, label } defs from db.barOrder
 ns.GetBarLabel(abm)                   -- → UI display label for an abm bar number (5 -> "Bar 3")
@@ -194,7 +194,7 @@ The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current 
 
 Rows and cells are **pooled** (`acquireBarRow` / `acquirePetRow`): created once, re-filled and repositioned on every `Update`, hidden when unused — WoW frames are never garbage-collected, so widgets must not be recreated per refresh. Cell buttons always exist; empty cells hide the icon texture and nil out the tooltip scripts. Handle/checkbox closures read the row's `orderIdx` / `barLabel` / `barKey` fields, which fill updates in place. The profile list in `profilelist.lua` uses the same pattern (`acquireRow`), since its `Refresh` runs on every list click.
 
-Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used as `barFilter` on Load) and a **drag handle** with a hamburger grip over the label area. `AllChecked()`/`SetAllChecked(v)` drive the window's **Check All / Uncheck All** toggle button (header row, between the Profiles label and the class filter); `onCheckedChanged` fires on any checkbox change so the button label tracks live state. Dragging is delegated to `ns.BuildRowDrag` (`barsview_drag.lua`): a phantom row follows the cursor, a drop line marks the target gap, and a full-screen catcher ends the drag from anywhere; `onDrop(from, insertPos)` fires only when the order actually changes, mutates `db.barOrder`, and re-Updates. The pet row is not reorderable.
+Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used as `barFilter` on Load) and a **drag handle** with a hamburger grip over the label area. `SetAllChecked(v)` drives the window's **Check All / Uncheck All** button (header row, between the Profiles label and the class filter) — a plain alternating toggle whose label names the next click's action; it does not track individual checkbox changes. Dragging is delegated to `ns.BuildRowDrag` (`barsview_drag.lua`): a phantom row follows the cursor, a drop line marks the target gap, and a full-screen catcher ends the drag from anywhere; `onDrop(from, insertPos)` fires only when the order actually changes, mutates `db.barOrder`, and re-Updates. The pet row is not reorderable.
 
 ---
 

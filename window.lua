@@ -76,15 +76,19 @@ local function CreateWindow()
   local _, refreshList, getSelected, setSelected, setClassFilter = ns.BuildProfileList(listPanel, OnSelect)
   f._refreshList = refreshList
 
-  -- Check All / Uncheck All toggle for the grid row checkboxes; label tracks
-  -- live state (all checked -> offer Uncheck All, otherwise offer Check All)
+  -- Check All / Uncheck All: plain alternating toggle for the grid row
+  -- checkboxes; the label always names the next click's action
   local CHECKALL_W = 90
-  local checkAllBtn = ui.Button:new{
+  local allOn = true  -- checkboxes default to checked
+  local checkAllBtn
+  checkAllBtn = ui.Button:new{
     parent   = f,
     template = "UIPanelButtonTemplate",
     glow     = false,
     onClick  = function()
-      f._barsGrid.SetAllChecked(not f._barsGrid.AllChecked())
+      allOn = not allOn
+      f._barsGrid.SetAllChecked(allOn)
+      checkAllBtn:Text(allOn and "Uncheck All" or "Check All")
     end,
     position = {
       TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
@@ -92,7 +96,7 @@ local function CreateWindow()
       Height  = ROW_H,
     },
   }
-  checkAllBtn:Text("Uncheck All")  -- checkboxes default to checked
+  checkAllBtn:Text("Uncheck All")
   checkAllBtn:TextAlign("CENTER")
 
   ns.BuildClassFilter(f, {
@@ -109,9 +113,7 @@ local function CreateWindow()
       BottomRight = { f, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD + ROW_H + PAD },
     },
   }
-  f._barsGrid = ns.BuildBarsGrid(barsPanel, function()
-    checkAllBtn:Text(f._barsGrid.AllChecked() and "Uncheck All" or "Check All")
-  end)
+  f._barsGrid = ns.BuildBarsGrid(barsPanel)
 
   -- ── Dialogs ──────────────────────────────────────────────────────────────
   local saveDialog = ns.BuildSaveDialog(f, function() refreshList() end)
