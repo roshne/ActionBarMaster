@@ -14,10 +14,22 @@ local function profSpellID(entry)
   return id
 end
 
+-- Racial entries store the ORDINAL in the racial spell list, not a spell ID.
+-- Resolve against the viewing character's race/class — same as restore does —
+-- so the grid shows what a Load would actually place on this character.
+local function racialSpellID(ordinal)
+  local _, race  = UnitRace("player")
+  local _, class = UnitClass("player")
+  return ns.GetRacialSpells(race, class)[ordinal]
+end
+
 local function getIcon(entry, macros)
   local t = entry.type
-  if t == "spell" or t == "racial" then
+  if t == "spell" then
     return spellTex(entry.index)
+  elseif t == "racial" then
+    local sid = racialSpellID(entry.index)
+    if sid then return spellTex(sid) end
   elseif t == "profession" then
     local spellID = profSpellID(entry)
     if spellID then return spellTex(spellID) end
@@ -74,8 +86,12 @@ local function addTooltip(btn, entry, macros)
   btn:SetScript("OnEnter", function()
     GameTooltip:SetOwner(btn._widget, "ANCHOR_TOPRIGHT", -2, 0)
     local t = entry.type
-    if t == "spell" or t == "racial" then
+    if t == "spell" then
       GameTooltip:SetSpellByID(entry.index)
+    elseif t == "racial" then
+      local sid = racialSpellID(entry.index)
+      if sid then GameTooltip:SetSpellByID(sid)
+      else GameTooltip:AddLine("Racial #" .. tostring(entry.index), 1, 1, 1) end
     elseif t == "profession" then
       local sid = profSpellID(entry)
       if sid then GameTooltip:SetSpellByID(sid)
