@@ -17,13 +17,13 @@ local function BuildSpellOverrides()
       local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(spellIndex, Enum.SpellBookSpellBank.Player)
       if spellId then
         local ovr = C_Spell.GetOverrideSpell(spellId)
-        if ovr ~= spellId then map[ovr] = spellId end  -- override -> base
+        if ovr and ovr ~= spellId then map[ovr] = spellId end  -- override -> base
       elseif spellType == Enum.SpellBookItemType.Flyout then
         local _, _, numSlots, isKnown = GetFlyoutInfo(id)
         if isKnown and numSlots > 0 then
           for k = 1, numSlots do
             local sid, ovr = GetFlyoutSlotInfo(id, k)
-            if ovr ~= sid then map[ovr] = sid end
+            if sid and ovr and ovr ~= sid then map[ovr] = sid end
           end
         end
       end
