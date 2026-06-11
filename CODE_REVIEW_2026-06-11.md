@@ -70,16 +70,20 @@ maps nothing at all.
 Fix: `for ordinal = 1, 5 do local profIdx = select(ordinal, GetProfessions()) ... end`
 (capture/restore stay consistent because both sides use the same ordinal).
 
-### B10. Capture classifies professions by spell *name*, corrupting look-alike spells — **fixed**
-*(Found in user testing 2026-06-11, post-B6.)* `capture.lua` matched bar spells against
-`GetProfessionNameMap()` by name. Any spell sharing a name with a profession spellbook
-entry — e.g. an item-granted "Survey" colliding with Archaeology's "Survey" — was stored
-as `type="profession"` with the real spell ID discarded. Restoring on a character without
-that profession produced a bogus "No profession in slot #N" warning and blanked the slot;
-on a character *with* it, the wrong spell was placed. Fixed by matching on spell ID
-(`GetProfessionSpellMap`); the name map remains only for resolving old profiles'
-name-only entries. Profiles captured before the fix may still carry misclassified
-entries — re-capture (or let autosave refresh) to clean them.
+### B10. Capture classified professions by spell *name* — latent collision hazard — **fixed**
+*(Investigated 2026-06-11 after a user report; PR #43.)* `capture.lua` matched bar spells
+against `GetProfessionNameMap()` by name, so any spell sharing a name with a profession
+spellbook entry would be stored as `type="profession"` with the real spell ID discarded.
+Fixed by matching on spell ID (`GetProfessionSpellMap`); the name map remains only for
+resolving old profiles' name-only entries.
+The triggering report itself turned out to be the warning-label mismatch (internal bar
+numbers vs UI labels — fixed in the same PR) plus cryptic wording: the profile's
+Archaeology/Survey entries were genuine, and the load target simply lacked Archaeology
+(probe-confirmed: `GetProfessions()` ordinal 3 nil). The probe also confirmed
+`PickupSpell` works for all profession spells (both pickup mechanisms OK across Mining,
+Jewelcrafting, Fishing, Cooking), and grid cells for unresolvable entries now show a
+question-mark icon with tooltip instead of rendering blank. Profession-skip warnings
+reworded to name the spell and the reason ("skipped [Survey] — profession not learned").
 
 ## Bugs — likely / hazard
 
