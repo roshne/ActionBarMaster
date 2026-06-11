@@ -51,7 +51,7 @@ ns.RestorePetBar(petslots)            -- apply pet bar (no-op without active pet
 ns.ClearUnusedSlots(slots, barFilter?) -- blank action slots absent from profile
 ns.BuildProfileList(parent, onSelect) -- → scroll, Refresh(), GetSelected(), SetSelected(i), SetClassFilter(key, specOnly)
 ns.BuildClassFilter(parent, pos, onSelect)  -- class dropdown; calls onSelect(classKey|nil, specOnly)
-ns.BuildBarsGrid(parent)              -- → { Update(profile?), GetChecked() } pooled icon grid
+ns.BuildBarsGrid(parent)              -- → { Update(profile?), GetChecked(), SetAllChecked(v) } pooled icon grid
 ns.BuildRowDrag(opts)                 -- → { Start(orderIdx, label), Finish(mouseButton) } drag-to-reorder
 ns.GetActiveBarOrder()                -- → ordered { abm, label } defs from db.barOrder
 ns.GetBarLabel(abm)                   -- → UI display label for an abm bar number (5 -> "Bar 3")
@@ -184,7 +184,7 @@ One spellbook pass (`GetProfessions()` → `GetProfessionInfo()` → spellbook e
 
 `BuildClassFilter` builds a custom dropdown (not Blizzard's UIDropDownMenu) using a `BgFrame` menu + a full-screen transparent `catcher` frame at `(menu.level − 1)` to close the menu on outside clicks. Menu items sit at `(menu.level + 1)`. Both menu and catcher use `DIALOG` strata so level ordering applies. The catcher is hidden via a hook on the menu's `OnHide` — every hide path (item click, outside click, Escape, parent window hiding) funnels through `menu:Hide()`. The menu — like every nested dialog in the addon (Save/Export/Import/Debug) — is deliberately **not** `special`: `CloseSpecialWindows` hides every visible special frame at once, so Escape would close the main window along with it. All of them use `ns.CaptureEscape(frame)` (init.lua) instead, which captures Escape via `OnKeyDown` + `SetPropagateKeyboardInput` while the frame is shown (propagation only, no capture, during combat lockdown). Only the main window itself is `special`.
 
-The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current spec only, `specOnly = true`) and `"<Class> - all specs"`. The spec name in the row label is re-resolved each time the menu opens. `onSelect(classKey, specOnly)` feeds `SetClassFilter(key, specOnly)` in `profilelist.lua`, which narrows to `p.spec == playerSpec` only when the flag is set.
+The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current spec only, `specOnly = true`) and `"<Class> - all specs"`. The spec name in the row label is re-resolved each time the menu opens. `onSelect(classKey, specOnly)` feeds `SetClassFilter(key, specOnly)` in `profilelist.lua`, which narrows to `p.spec == playerSpec` only when the flag is set. The filter **defaults to the player's current class + spec** at build time (falling back to All Classes if the class has no entry); manual selections persist for the session.
 
 ---
 
@@ -194,7 +194,7 @@ The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current 
 
 Rows and cells are **pooled** (`acquireBarRow` / `acquirePetRow`): created once, re-filled and repositioned on every `Update`, hidden when unused — WoW frames are never garbage-collected, so widgets must not be recreated per refresh. Cell buttons always exist; empty cells hide the icon texture and nil out the tooltip scripts. Handle/checkbox closures read the row's `orderIdx` / `barLabel` / `barKey` fields, which fill updates in place. The profile list in `profilelist.lua` uses the same pattern (`acquireRow`), since its `Refresh` runs on every list click.
 
-Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used as `barFilter` on Load) and a **drag handle** with a hamburger grip over the label area. Dragging is delegated to `ns.BuildRowDrag` (`barsview_drag.lua`): a phantom row follows the cursor, a drop line marks the target gap, and a full-screen catcher ends the drag from anywhere; `onDrop(from, insertPos)` fires only when the order actually changes, mutates `db.barOrder`, and re-Updates. The pet row is not reorderable.
+Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used as `barFilter` on Load) and a **drag handle** with a hamburger grip over the label area. `SetAllChecked(v)` drives the window's **Check All / Uncheck All** button (header row, between the Profiles label and the class filter) — a plain alternating toggle whose label names the next click's action; it does not track individual checkbox changes. Dragging is delegated to `ns.BuildRowDrag` (`barsview_drag.lua`): a phantom row follows the cursor, a drop line marks the target gap, and a full-screen catcher ends the drag from anywhere; `onDrop(from, insertPos)` fires only when the order actually changes, mutates `db.barOrder`, and re-Updates. The pet row is not reorderable.
 
 ---
 

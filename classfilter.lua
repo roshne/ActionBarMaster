@@ -139,4 +139,15 @@ function ns.BuildClassFilter(parent, position, onSelect)
       position = { Left = { btn, ui.edge.Left, 4, 0 }, Top = {}, Bottom = {} },
     }
   end
+
+  -- Default to the player's current class + spec rather than All Classes;
+  -- manual selections persist for the rest of the session. Falls back to
+  -- All Classes if the player's class has no entry (future class not in CLASSES).
+  for _, e in ipairs(entries) do
+    if e.specOnly then
+      triggerLabel:Text(EntryText(e) .. " v")
+      onSelect(e.key, true)
+      break
+    end
+  end
 end

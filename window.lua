@@ -76,8 +76,31 @@ local function CreateWindow()
   local _, refreshList, getSelected, setSelected, setClassFilter = ns.BuildProfileList(listPanel, OnSelect)
   f._refreshList = refreshList
 
+  -- Check All / Uncheck All: plain alternating toggle for the grid row
+  -- checkboxes; the label always names the next click's action
+  local CHECKALL_W = 90
+  local allOn = true  -- checkboxes default to checked
+  local checkAllBtn
+  checkAllBtn = ui.Button:new{
+    parent   = f,
+    template = "UIPanelButtonTemplate",
+    glow     = false,
+    onClick  = function()
+      allOn = not allOn
+      f._barsGrid.SetAllChecked(allOn)
+      checkAllBtn:Text(allOn and "Uncheck All" or "Check All")
+    end,
+    position = {
+      TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
+      Width   = CHECKALL_W,
+      Height  = ROW_H,
+    },
+  }
+  checkAllBtn:Text("Uncheck All")
+  checkAllBtn:TextAlign("CENTER")
+
   ns.BuildClassFilter(f, {
-    TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
+    TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD + CHECKALL_W + PAD, -PAD },
     Width   = FILTER_W,
     Height  = ROW_H,
   }, function(key, specOnly) setClassFilter(key, specOnly) end)
