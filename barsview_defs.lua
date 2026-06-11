@@ -29,6 +29,15 @@ for _, def in ipairs(BAR_DEFS) do abmToBarDef[def.abm] = def end
 local DEFAULT_ORDER = {}
 for _, def in ipairs(BAR_DEFS) do DEFAULT_ORDER[#DEFAULT_ORDER + 1] = def.abm end
 
+---Returns the UI display label for an abm bar number (e.g. 5 -> "Bar 3").
+---Used by restore warnings so they name the same rows the grid shows.
+---@param abm integer
+---@return string
+function ns.GetBarLabel(abm)
+  local def = abmToBarDef[abm]
+  return def and def.label or ("Bar " .. abm)
+end
+
 ---Returns the ordered array of bar defs ({ abm, label }) to display,
 ---sourced from db.barOrder (falling back to the default order).
 ---@return table[]

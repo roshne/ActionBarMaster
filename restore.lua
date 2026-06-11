@@ -75,7 +75,9 @@ end
 local function slotLabel(id)
   local bar = math.floor((id - 1) / 12) + 1
   local col = ((id - 1) % 12) + 1
-  return "bar " .. bar .. " slot " .. col .. ": "
+  -- UI display label ("Bar 3", "Bonus", "Class 1", ...), not the internal bar
+  -- number — internal bars 2-6 carry different display names in the grid
+  return ns.GetBarLabel(bar) .. " slot " .. col .. ": "
 end
 
 -- Flyout slots must be restored first, before any other PickupSpell/PlaceAction calls
