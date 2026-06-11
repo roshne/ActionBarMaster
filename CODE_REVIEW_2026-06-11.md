@@ -31,7 +31,7 @@ hints it might, making a 1-based displayed loop off by one), and whether `Pickup
 accepts mount summon spell IDs at all. Needs in-game `/dump` investigation of
 `Pickup`/`GetDisplayedMountInfo` index alignment before a second attempt.
 
-### B2. Toy "not in Toy Box" check reads itemQuality, not ownership — **fixed**
+### B2. Toy "not in Toy Box" check reads itemQuality, not ownership — **fixed, verified in-game**
 `restore.lua:145`. `select(6, C_ToyBox.GetToyInfo(id))` is **itemQuality**
 (`itemID, toyName, icon, isFavorite, hasFanfare, itemQuality` — AlertFrameSystems.lua:1253).
 `owned == false` is never true, so the suffix is dead code. Use `PlayerHasToy(s.index)`.
