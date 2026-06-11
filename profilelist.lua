@@ -16,7 +16,11 @@ local function ProfileLabel(p)
   local prefix = p.autosave and "|cff888888[a] |r"
               or not p.class and "|cff888888[s] |r"
               or ""
-  return prefix .. ClassColor(p.class) .. (p.name or "?") .. "|r"
+  -- shared profiles belong to no class: heirloom blue, like account-wide items
+  local color = p.class and ClassColor(p.class)
+             or ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[7] and ITEM_QUALITY_COLORS[7].hex
+             or "|cff00ccff"
+  return prefix .. color .. (p.name or "?") .. "|r"
 end
 
 ---Build a scrollable profile list inside `parent`.
