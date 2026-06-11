@@ -15,7 +15,15 @@ LibNAddOn{
 function ns.CaptureEscape(frame)
   local w = frame._widget
   w:EnableKeyboard(true)
-  w:SetPropagateKeyboardInput(true)
+  -- SetPropagateKeyboardInput is protected during combat lockdown, and frame
+  -- creation can happen mid-combat (/bars in combat builds the window): set
+  -- propagation whenever it is safe — at setup and on every show, which also
+  -- resets the no-propagate state an Escape capture leaves behind.
+  local function propagate()
+    if not InCombatLockdown() then w:SetPropagateKeyboardInput(true) end
+  end
+  propagate()
+  w:HookScript("OnShow", propagate)
   w:SetScript("OnKeyDown", function(widget, key)
     local isEsc = key == "ESCAPE"
     if not InCombatLockdown() then

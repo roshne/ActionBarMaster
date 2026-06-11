@@ -1,6 +1,13 @@
 local _, ns = ...
 
 local function DoAutoSave()
+  -- In combat, Capture degrades (temp-macro resolution needs the protected
+  -- PickupAction) — defer rather than snapshot wrong data
+  if InCombatLockdown() then
+    ns:delay(2000, DoAutoSave)
+    return
+  end
+
   -- Spec data may not be ready yet on login/reload; retry rather than saving "Unknown"
   local spec     = GetSpecialization and GetSpecialization()
   local specName = spec and spec > 0 and select(2, GetSpecializationInfo(spec))

@@ -73,8 +73,11 @@ local function CaptureSlots(overrides, includeOutfits, racialSet, profSpellMap, 
             end
           end
         elseif slotType == "macro" then
-          -- subType means it's a temp macro; resolve real index via cursor
-          if subType then
+          -- subType means it's a temp macro; resolve real index via cursor.
+          -- PickupAction is protected in combat (ADDON_ACTION_BLOCKED), and
+          -- with something already held it would SWAP the cursor contents
+          -- into the slot — keep the raw index in either case (B3)
+          if subType and not InCombatLockdown() and not GetCursorInfo() then
             PickupAction(i)
             _, index = GetCursorInfo()
             PlaceAction(i)
