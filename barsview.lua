@@ -175,7 +175,9 @@ function ns.BuildBarsGrid(parent)
   -- hasn't learned, uncached items, ...). A bundled texture, NOT
   -- INV_Misc_QuestionMark — the game assigns that icon to outfits it has no icon
   -- for, so it would be indistinguishable from a real outfit entry in the grid.
-  local UNRESOLVED_TEX = "Interface\\AddOns\\ActionBarMaster\\textures\\unresolved"
+  -- PNG (supported since 10.1), not TGA: the client read the TGA's channel
+  -- order as swapped (red rendered teal in-game)
+  local UNRESOLVED_TEX = "Interface\\AddOns\\ActionBarMaster\\textures\\unresolved.png"
 
   local function fillCell(cell, slotID, entry, macros)
     -- unresolvable entries still occupy the slot: show the placeholder and
