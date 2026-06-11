@@ -75,6 +75,7 @@ local function CreateWindow()
 
   local _, refreshList, getSelected, setSelected, setClassFilter = ns.BuildProfileList(listPanel, OnSelect)
   f._refreshList = refreshList
+  f._getSelected = getSelected
 
   -- Check All / Uncheck All: plain alternating toggle for the grid row
   -- checkboxes; the label always names the next click's action
@@ -121,7 +122,8 @@ local function CreateWindow()
   local impDlg     = ns.BuildImportDialog(f, function(profile)
     f._pendingProfile   = profile
     f._pendingBarFilter = nil
-    StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. profile.spec)
+    local what = profile.spec ~= "" and profile.spec or "shared bars"
+    StaticPopup_Show("ABM_CONFIRM_IMPORT", profile.char .. " / " .. what)
   end)
 
   -- ── Bottom buttons ───────────────────────────────────────────────────────
@@ -143,6 +145,15 @@ local function CreateWindow()
     {
       label = "Save", x = LX[2],
       fn = function()
+        local checked = f._barsGrid.GetChecked()
+        local total, inc = 0, 0
+        for _, def in ipairs(ns.GetActiveBarOrder()) do
+          total = total + 1
+          if checked[def.abm] ~= false then inc = inc + 1 end
+        end
+        saveDialog._note:Text(inc == total
+          and "Saving all bars (full profile)"
+          or ("Saving " .. inc .. " of " .. total .. " bars |cff888888(shared, all classes)|r"))
         saveDialog:Show()
         saveDialog._nameBox:Text("")
         saveDialog._nameBox._widget:SetFocus()
@@ -244,6 +255,11 @@ end
 function ns:Open()
   if not window then window = CreateWindow() end
   window._refreshList()
+  -- nothing selected: preview the current character's live bars, so the save
+  -- checkboxes have rows to act on before any profile is selected
+  if not window._getSelected() then
+    window._barsGrid.Update(ns.Capture())
+  end
   window:Show()
 end
 

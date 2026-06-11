@@ -3,7 +3,11 @@ local _, ns = ...
 local base64 = ns.base64
 local crc32  = ns.crc32
 
-local VERSION = 2
+-- Max format version this build reads. Full profiles still ENCODE as v2 so
+-- earlier addon revisions can decode them; v3 (captured-bars list) is used
+-- only for partial profiles, which older revisions couldn't restore correctly
+-- anyway.
+local VERSION = 3
 
 -- ── Packer ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +85,12 @@ local function Pack(profile)
   byte(#outfits)
   for _, name in ipairs(outfits) do
     str8(name)
+  end
+
+  -- captured-bars list (v3+; present only for partial profiles)
+  if profile.bars then
+    byte(#profile.bars)
+    for _, b in ipairs(profile.bars) do byte(b) end
   end
 
   return buf
@@ -165,6 +175,14 @@ local function Unpack(buf, ver)
     profile.outfits[#profile.outfits+1] = str8()
   end
 
+  if ver >= 3 then
+    local nBars = byte()
+    if nBars and nBars > 0 then
+      profile.bars = {}
+      for _ = 1, nBars do profile.bars[#profile.bars+1] = byte() end
+    end
+  end
+
   return profile
 end
 
@@ -180,7 +198,8 @@ function ns.Encode(profile)
   local payload = Pack(profile)
 
   -- header: [version(1)] [crc(4)] [payload...]
-  local frame = { VERSION, 0, 0, 0, 0 }
+  local ver = profile.bars and 3 or 2
+  local frame = { ver, 0, 0, 0, 0 }
   for _, b in ipairs(payload) do frame[#frame+1] = b end
   local crc = crc32.enc(frame)
   -- store crc using integer bit ops to stay in integer domain
