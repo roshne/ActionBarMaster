@@ -172,7 +172,10 @@ function ns.BuildBarsGrid(parent)
   end
 
   local function fillCell(cell, slotID, entry, macros)
-    local icon = entry and getIcon(entry, macros)
+    -- entries the viewing character can't resolve (professions it hasn't
+    -- learned, uncached items, ...) still occupy the slot: show a question
+    -- mark and keep the tooltip (which has text fallbacks) instead of blank
+    local icon = entry and (getIcon(entry, macros) or "Interface\\Icons\\INV_Misc_QuestionMark")
     if icon then
       cell.icon:Texture(icon)
       cell.icon:Show()
@@ -229,7 +232,7 @@ function ns.BuildBarsGrid(parent)
   end
 
   local function fillPetCell(cell, entry)
-    local icon = entry and getPetIcon(entry)
+    local icon = entry and (getPetIcon(entry) or "Interface\\Icons\\INV_Misc_QuestionMark")
     if icon then
       cell.icon:Texture(icon)
       cell.icon:Show()
