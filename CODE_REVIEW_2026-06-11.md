@@ -85,6 +85,14 @@ Jewelcrafting, Fishing, Cooking), and grid cells for unresolvable entries now sh
 question-mark icon with tooltip instead of rendering blank. Profession-skip warnings
 reworded to name the spell and the reason ("skipped [Survey] — profession not learned").
 
+### B11. `companion` slot type captured but unhandled everywhere downstream — **fixed**
+*(Found in user testing 2026-06-11: a legacy pre-journal mount button — companion spell
+44151 — on a live profile.)* Capture stored `type="companion"` (index = summon spell ID),
+but `barsicons.lua` had no icon or tooltip branch (placeholder icon, empty tooltip) and
+`RestoreSlots` had no restore branch — the slot fell through every `elseif` and was
+silently **blanked on every restore**. Fixed: icon via `spellTex`, tooltip via
+`SetSpellByID`, restore via `PickupSpell` (warn on miss).
+
 ## Bugs — likely / hazard
 
 ### B7. Stale profile indices around confirm popups can delete the wrong profile

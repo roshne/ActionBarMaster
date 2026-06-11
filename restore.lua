@@ -183,6 +183,12 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           end
         end
         if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
+      elseif s.type == "companion" then
+        -- legacy pre-journal mount/mini-pet action; index is the summon spell ID
+        PickupSpell(s.index)
+        if not GetCursorInfo() then
+          Warn(slot .. "Missing companion " .. (GetSpellLink(s.index) or ("spell " .. s.index)))
+        end
       elseif s.type == "equipmentset" then
         if C_EquipmentSet then
           local setIDs = C_EquipmentSet.GetEquipmentSetIDs()

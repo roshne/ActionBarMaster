@@ -140,7 +140,7 @@ profile = {
 | `"summonmount"` | mount ID | — |
 | `"equipmentset"` | position in set ID array | — |
 | `"outfit"` | position in outfit list | — |
-| `"companion"` | companion ID | — |
+| `"companion"` | summon spell ID (legacy pre-journal mount/pet action) | — |
 | `"petaction"` / `"futurespell"` | — | — (cleared on restore) |
 
 ---
