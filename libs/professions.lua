@@ -9,8 +9,10 @@ local GetSpellName = C_Spell and C_Spell.GetSpellName
 function ns.GetProfessionNameMap()
   local map = {}
   if not GetProfessions then return map end
-  local profs = { GetProfessions() }
-  for ordinal, profIdx in ipairs(profs) do
+  -- GetProfessions returns (prof1, prof2, archaeology, fishing, cooking) with nil
+  -- holes — ipairs would stop at the first nil and skip fishing/cooking
+  for ordinal = 1, 5 do
+    local profIdx = select(ordinal, GetProfessions())
     if profIdx then
       local profName, _, _, _, numItems, spellOffset = GetProfessionInfo(profIdx)
       if profName then

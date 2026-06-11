@@ -55,13 +55,13 @@ local function BuildSpellbookMaps()
       local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
       if spellId then
         local ovr = C_Spell.GetOverrideSpell(spellId)
-        if ovr ~= spellId then overrides[spellId] = ovr; overrides[ovr] = spellId end
+        if ovr and ovr ~= spellId then overrides[spellId] = ovr; overrides[ovr] = spellId end
       elseif spellType == Enum.SpellBookItemType.Flyout then
         local _, _, numSlots, isKnown = GetFlyoutInfo(id)
         if isKnown and numSlots > 0 then
           for k = 1, numSlots do
             local sid, ovr = GetFlyoutSlotInfo(id, k)
-            if ovr ~= sid then overrides[sid] = ovr; overrides[ovr] = sid end
+            if sid and ovr and ovr ~= sid then overrides[sid] = ovr; overrides[ovr] = sid end
           end
         end
         if not flyouts[id] then flyouts[id] = { si, Enum.SpellBookSpellBank.Player } end
@@ -142,8 +142,8 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() then
           local link = select(2, GetItemInfo(s.index))
           if link then
-            local owned = C_ToyBox and select(6, C_ToyBox.GetToyInfo(s.index))
-            local suffix = (owned == false) and " (not in Toy Box)" or ""
+            local isToy  = C_ToyBox and C_ToyBox.GetToyInfo(s.index)
+            local suffix = (isToy and not PlayerHasToy(s.index)) and " (not in Toy Box)" or ""
             Warn(slot .. "Missing item " .. link .. suffix)
           else
             pendingItemWarns[s.index] = slot
