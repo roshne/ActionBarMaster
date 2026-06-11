@@ -60,7 +60,7 @@ out and back; the original action is already gone.
 Fix: after PlaceAction, the cursor holds the previous action — hold it and re-place it at
 the end instead of clearing; or refuse to run when the slot is occupied.
 
-### B6. Profession map stops at the first nil profession slot — **fixed**
+### B6. Profession map stops at the first nil profession slot — **fixed, verified in-game**
 `libs/professions.lua:12-13`. `for ordinal, profIdx in ipairs({ GetProfessions() })` —
 GetProfessions returns `(prof1, prof2, archaeology, fishing, cooking)` with nil holes.
 Archaeology is nil for nearly everyone, so **fishing and cooking never enter the name map**;
