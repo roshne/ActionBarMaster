@@ -172,17 +172,17 @@ function ns.BuildBarsGrid(parent)
   end
 
   -- Placeholder for entries the viewing character can't resolve (professions it
-  -- hasn't learned, uncached items, ...). The quest-waypoint "?" badge atlas, NOT
+  -- hasn't learned, uncached items, ...). A bundled texture, NOT
   -- INV_Misc_QuestionMark — the game assigns that icon to outfits it has no icon
   -- for, so it would be indistinguishable from a real outfit entry in the grid.
-  local UNRESOLVED_ATLAS = "questlog-waypoint-finaldestination-questionmark"
+  local UNRESOLVED_TEX = "Interface\\AddOns\\ActionBarMaster\\textures\\unresolved"
 
   local function fillCell(cell, slotID, entry, macros)
-    local icon = entry and getIcon(entry, macros)
-    if entry then
-      -- unresolvable entries still occupy the slot: show the placeholder and
-      -- keep the tooltip (which has per-type text fallbacks) instead of blank
-      if icon then cell.icon:Texture(icon) else cell.icon:Atlas(UNRESOLVED_ATLAS) end
+    -- unresolvable entries still occupy the slot: show the placeholder and
+    -- keep the tooltip (which has per-type text fallbacks) instead of blank
+    local icon = entry and (getIcon(entry, macros) or UNRESOLVED_TEX)
+    if icon then
+      cell.icon:Texture(icon)
       cell.icon:Show()
       addTooltip(cell.btn, entry, macros)
       cell.num:TopLeft(cell.btn, ui.edge.TopLeft, 4, -4)
@@ -237,9 +237,9 @@ function ns.BuildBarsGrid(parent)
   end
 
   local function fillPetCell(cell, entry)
-    local icon = entry and getPetIcon(entry)
-    if entry then
-      if icon then cell.icon:Texture(icon) else cell.icon:Atlas(UNRESOLVED_ATLAS) end
+    local icon = entry and (getPetIcon(entry) or UNRESOLVED_TEX)
+    if icon then
+      cell.icon:Texture(icon)
       cell.icon:Show()
       addPetTooltip(cell.btn, entry)
     else
