@@ -18,8 +18,10 @@ local GRID_X        = CHK_W + GAP
 ---Build a scrollable action-bar icon grid inside `parent`.
 ---Rows follow the user-configured order stored in db.barOrder; dragging a row
 ---label reorders it and persists the new order immediately.
----@return { Update: fun(profile: table?), GetChecked: fun(): table }
-function ns.BuildBarsGrid(parent)
+---@param parent table  LibNUI frame
+---@param onCheckedChanged fun()?  called whenever any row checkbox changes
+---@return { Update: fun(profile: table?), GetChecked: fun(): table, AllChecked: fun(): boolean, SetAllChecked: fun(v: boolean) }
+function ns.BuildBarsGrid(parent, onCheckedChanged)
   local getIcon       = ns._bar_getIcon
   local getPetIcon    = ns._bar_getPetIcon
   local addTooltip    = ns._bar_addTooltip
@@ -61,6 +63,10 @@ function ns.BuildBarsGrid(parent)
   local Update                -- forward-declared; assigned below
 
   local function isChecked(key) return checked[key] ~= false end
+
+  local function notifyChecked()
+    if onCheckedChanged then onCheckedChanged() end
+  end
 
   local drag = ns.BuildRowDrag{
     content = content,
@@ -134,7 +140,7 @@ function ns.BuildBarsGrid(parent)
     row.chk = ui.CheckButton:new{
       parent   = row.rowF,
       position = { TopLeft = { row.rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
-      OnToggle = function(self) checked[row.barKey] = self:Checked() end,
+      OnToggle = function(self) checked[row.barKey] = self:Checked(); notifyChecked() end,
     }
 
     -- Bar label (rendered under the transparent handle button)
@@ -211,7 +217,7 @@ function ns.BuildBarsGrid(parent)
     petRow.chk = ui.CheckButton:new{
       parent   = petRow.rowF,
       position = { TopLeft = { petRow.rowF, ui.edge.TopLeft, CHK_X, CHK_Y }, Width = CHK_SZ, Height = CHK_SZ },
-      OnToggle = function(self) checked.pet = self:Checked() end,
+      OnToggle = function(self) checked.pet = self:Checked(); notifyChecked() end,
     }
     ui.Label:new{
       parent = petRow.rowF, text = "Pet Bar", justifyH = "RIGHT",
@@ -315,5 +321,27 @@ function ns.BuildBarsGrid(parent)
     content:Height(math.max(totalRows * (CELL + GAP), 1))
   end
 
-  return { Update = Update, GetChecked = function() return checked end }
+  local function AllChecked()
+    for _, def in ipairs(ns.GetActiveBarOrder()) do
+      if checked[def.abm] == false then return false end
+    end
+    return checked.pet ~= false
+  end
+
+  local function SetAllChecked(v)
+    for _, def in ipairs(ns.GetActiveBarOrder()) do checked[def.abm] = v end
+    checked.pet = v
+    -- pooled checkbox widgets re-fill from `checked` on Update; sync the
+    -- currently visible ones in place
+    for _, row in ipairs(barRows) do row.chk:Checked(v) end
+    if petRow then petRow.chk:Checked(v) end
+    notifyChecked()
+  end
+
+  return {
+    Update        = Update,
+    GetChecked    = function() return checked end,
+    AllChecked    = AllChecked,
+    SetAllChecked = SetAllChecked,
+  }
 end
