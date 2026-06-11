@@ -55,13 +55,13 @@ local function BuildSpellbookMaps()
       local spellType, id, spellId = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
       if spellId then
         local ovr = C_Spell.GetOverrideSpell(spellId)
-        if ovr ~= spellId then overrides[spellId] = ovr; overrides[ovr] = spellId end
+        if ovr and ovr ~= spellId then overrides[spellId] = ovr; overrides[ovr] = spellId end
       elseif spellType == Enum.SpellBookItemType.Flyout then
         local _, _, numSlots, isKnown = GetFlyoutInfo(id)
         if isKnown and numSlots > 0 then
           for k = 1, numSlots do
             local sid, ovr = GetFlyoutSlotInfo(id, k)
-            if ovr ~= sid then overrides[sid] = ovr; overrides[ovr] = sid end
+            if sid and ovr and ovr ~= sid then overrides[sid] = ovr; overrides[ovr] = sid end
           end
         end
         if not flyouts[id] then flyouts[id] = { si, Enum.SpellBookSpellBank.Player } end
@@ -142,8 +142,8 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() then
           local link = select(2, GetItemInfo(s.index))
           if link then
-            local owned = C_ToyBox and select(6, C_ToyBox.GetToyInfo(s.index))
-            local suffix = (owned == false) and " (not in Toy Box)" or ""
+            local isToy  = C_ToyBox and C_ToyBox.GetToyInfo(s.index)
+            local suffix = (isToy and not PlayerHasToy(s.index)) and " (not in Toy Box)" or ""
             Warn(slot .. "Missing item " .. link .. suffix)
           else
             pendingItemWarns[s.index] = slot
@@ -171,14 +171,24 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() then C_PetJournal.PickupPet(s.strindex, true) end
         if not GetCursorInfo() then Warn(slot .. "Missing pet [" .. tostring(s.strindex) .. "]") end
       elseif s.type == "summonmount" then
-        local mi
         if C_MountJournal then
-          for i = 1, C_MountJournal.GetNumMounts() do
-            local _, _, _, _, _, _, _, _, _, _, mountCol, mid = C_MountJournal.GetDisplayedMountInfo(i)
-            if mountCol and mid == s.index then mi = i; break end
+          -- The displayed list honors journal filters/search; Pickup takes a displayed index
+          for i = 1, C_MountJournal.GetNumDisplayedMounts() do
+            local _, _, _, _, _, _, _, _, _, _, isCollected, mid = C_MountJournal.GetDisplayedMountInfo(i)
+            if isCollected and mid == s.index then
+              C_MountJournal.Pickup(i)
+              break
+            end
+          end
+          -- mount filtered out of the displayed list; fall back to its summon spell
+          if not GetCursorInfo() then
+            local name, spellID, _, _, _, _, _, _, _, _, isCollected = C_MountJournal.GetMountInfoByID(s.index)
+            if isCollected and spellID then PickupSpell(spellID) end
+            if not GetCursorInfo() then
+              Warn(slot .. "Missing mount " .. (name and ("[" .. name .. "]") or ("#" .. tostring(s.index))))
+            end
           end
         end
-        if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
       elseif s.type == "equipmentset" then
         if C_EquipmentSet then
           local setIDs = C_EquipmentSet.GetEquipmentSetIDs()
