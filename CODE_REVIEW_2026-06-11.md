@@ -9,7 +9,7 @@ Carry-over open items are listed at the end. WoW API claims verified against
 
 ## Bugs — confirmed
 
-### B1. Mount restore depends on the journal's filter state and uses the wrong loop bound
+### B1. Mount restore depends on the journal's filter state and uses the wrong loop bound — **fixed**
 `restore.lua:173-181`. The loop runs `i = 1, C_MountJournal.GetNumMounts()` but indexes
 `GetDisplayedMountInfo(i)` — the **displayed** (filtered/searched) list, whose bound is
 `GetNumDisplayedMounts()` (see Blizzard_MountCollection.lua:662). Consequences:
@@ -23,7 +23,7 @@ Carry-over open items are listed at the end. WoW API claims verified against
 Fix: resolve via `C_MountJournal.GetMountInfoByID(s.index)` → `PickupSpell(spellID)` (works
 regardless of filters), or at minimum loop `GetNumDisplayedMounts()` and warn+blank on miss.
 
-### B2. Toy "not in Toy Box" check reads itemQuality, not ownership
+### B2. Toy "not in Toy Box" check reads itemQuality, not ownership — **fixed**
 `restore.lua:145`. `select(6, C_ToyBox.GetToyInfo(id))` is **itemQuality**
 (`itemID, toyName, icon, isFavorite, hasFanfare, itemQuality` — AlertFrameSystems.lua:1253).
 `owned == false` is never true, so the suffix is dead code. Use `PlayerHasToy(s.index)`.
@@ -52,7 +52,7 @@ out and back; the original action is already gone.
 Fix: after PlaceAction, the cursor holds the previous action — hold it and re-place it at
 the end instead of clearing; or refuse to run when the slot is occupied.
 
-### B6. Profession map stops at the first nil profession slot
+### B6. Profession map stops at the first nil profession slot — **fixed**
 `libs/professions.lua:12-13`. `for ordinal, profIdx in ipairs({ GetProfessions() })` —
 GetProfessions returns `(prof1, prof2, archaeology, fishing, cooking)` with nil holes.
 Archaeology is nil for nearly everyone, so **fishing and cooking never enter the name map**;
@@ -74,7 +74,7 @@ autosave events).
 Fix: stash the profile *table reference* and locate it by identity at accept time; treat
 selection the same way.
 
-### B8. `GetOverrideSpell` nil-result would abort Capture/Restore map builds
+### B8. `GetOverrideSpell` nil-result would abort Capture/Restore map builds — **fixed**
 `capture.lua:19-20`, `restore.lua:57-58`. If `C_Spell.GetOverrideSpell` ever returns nil
 for an odd spellbook entry, `map[nil] = ...` throws "table index is nil" — Capture errors
 (and autosave re-errors every retry). One-line hardening: `if ovr and ovr ~= spellId`.
