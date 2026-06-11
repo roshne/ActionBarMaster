@@ -39,10 +39,15 @@ local GetSpellNameFn = C_Spell and C_Spell.GetSpellName
 -- includeOutfits:  when false, slots of type "outfit" are skipped.
 -- racialSet:       { [spellID] = ordinal }            racial spells stored as type="racial"
 -- profSpellMap:    { [spellID] = {ordinal, slot} }    profession spells matched by spell ID
-local function CaptureSlots(overrides, includeOutfits, racialSet, profSpellMap)
+-- barFilter:       { [barNum] = bool }?               false = skip that bar's slots
+local function CaptureSlots(overrides, includeOutfits, racialSet, profSpellMap, barFilter)
   local slots = {}
   for i = 1, MAX_BARS do
     local slotType, index, subType = GetActionInfo(i)
+    local bar = math.floor((i - 1) / 12) + 1
+    if barFilter and barFilter[bar] == false then
+      slotType = nil  -- bar excluded from this capture
+    end
     if slotType and slotType ~= "" then
       if slotType == "outfit" and not includeOutfits then
         -- skip
@@ -156,9 +161,28 @@ local function ProfileMeta()
   }
 end
 
+-- Narrow a macro list to the macros actually referenced by the given slots
+local function TrimMacros(macros, slots)
+  local used = {}
+  for _, s in ipairs(slots) do
+    if s.type == "macro" and s.index then used[s.index] = true end
+  end
+  local r = {}
+  for _, m in ipairs(macros) do
+    if used[m.id] then r[#r+1] = m end
+  end
+  return r
+end
+
 ---Capture the current character's setup into a profile table.
+---With a barFilter excluding any bar, the result is a PARTIAL profile: it
+---records the captured-bar set (profile.bars), becomes class/spec agnostic
+---(shared across characters), drops keybinds (global, not per-bar), and trims
+---macros to those the captured slots reference. Restore only touches the
+---captured bars of such a profile.
+---@param barFilter table? { [barNum|"pet"] = bool }; false = exclude
 ---@return table profile
-function ns.Capture()
+function ns.Capture(barFilter)
   local overrides          = BuildSpellOverrides()
   local _, race            = UnitRace("player")
   local _, class           = UnitClass("player")
@@ -166,9 +190,23 @@ function ns.Capture()
   local profSpellMap       = ns.GetProfessionSpellMap()
   local profile = ProfileMeta()
   profile.version  = 1
-  profile.slots    = CaptureSlots(overrides, true, racialSet, profSpellMap)
+  profile.slots    = CaptureSlots(overrides, true, racialSet, profSpellMap, barFilter)
   profile.binds    = CaptureBindings()
   profile.macros   = CaptureMacros()
-  profile.petslots = CapturePetBar()
+  profile.petslots = (not barFilter or barFilter.pet ~= false) and CapturePetBar() or {}
+
+  if barFilter then
+    local bars = {}
+    for b = 1, MAX_BARS / 12 do
+      if barFilter[b] ~= false then bars[#bars+1] = b end
+    end
+    if #bars < MAX_BARS / 12 then
+      profile.bars   = bars
+      profile.class  = ""
+      profile.spec   = ""
+      profile.binds  = {}
+      profile.macros = TrimMacros(profile.macros, profile.slots)
+    end
+  end
   return profile
 end

@@ -12,8 +12,15 @@ local function ClassColor(class)
 end
 
 local function ProfileLabel(p)
-  local prefix = p.autosave and "|cff888888[a] |r" or ""
-  return prefix .. ClassColor(p.class) .. (p.name or "?") .. "|r"
+  -- [a] autosave; [s] shared (partial, class/spec agnostic — p.class is nil)
+  local prefix = p.autosave and "|cff888888[a] |r"
+              or not p.class and "|cff888888[s] |r"
+              or ""
+  -- shared profiles belong to no class: heirloom blue, like account-wide items
+  local color = p.class and ClassColor(p.class)
+             or ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[7] and ITEM_QUALITY_COLORS[7].hex
+             or "|cff00ccff"
+  return prefix .. color .. (p.name or "?") .. "|r"
 end
 
 ---Build a scrollable profile list inside `parent`.
@@ -86,8 +93,9 @@ function ns.BuildProfileList(parent, onSelect)
     local playerSpec = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
     local n, y = 0, 0
     for i, p in ipairs(ns.db.profiles) do
-      local classMatch = not classFilter or p.class == classFilter
-      local specMatch  = not specFilter or p.spec == playerSpec
+      -- shared profiles (p.class nil) ignore the class/spec filter entirely
+      local classMatch = not classFilter or not p.class or p.class == classFilter
+      local specMatch  = not specFilter  or not p.class or p.spec == playerSpec
       if classMatch and specMatch then
         n = n + 1
         local row = acquireRow(n)

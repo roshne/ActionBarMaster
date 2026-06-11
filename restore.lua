@@ -234,6 +234,20 @@ function ns.Restore(profile, barFilter)
   local slots    = profile.slots    or {}
   local petslots = profile.petslots or {}
 
+  -- Partial profiles only touch their captured bars: restrict slot restore AND
+  -- unused-slot clearing to the intersection of the captured set and the
+  -- caller's barFilter. Bars outside the captured set are left untouched.
+  if profile.bars then
+    local captured = {}
+    for _, b in ipairs(profile.bars) do captured[b] = true end
+    local merged = {}
+    for b = 1, MAX_BARS / 12 do
+      merged[b] = (captured[b] and (not barFilter or barFilter[b] ~= false)) or false
+    end
+    merged.pet = ((#petslots > 0) and (not barFilter or barFilter.pet ~= false)) or false
+    barFilter = merged
+  end
+
   if barFilter then
     local filtered = {}
     for _, s in ipairs(slots) do
@@ -250,7 +264,9 @@ function ns.Restore(profile, barFilter)
   ns.RestoreMacrosAndSlots(profile.macros or {}, slots)
   RestoreSlots(slots, overrides, flyouts, race, class)
   ns.ClearUnusedSlots(slots, barFilter)
-  ns.RestoreBindings(profile.binds or {})
+  if #(profile.binds or {}) > 0 then
+    ns.RestoreBindings(profile.binds)
+  end
   ns.RestorePetBar(petslots)
   ns.Print("Bars restored.")
 end

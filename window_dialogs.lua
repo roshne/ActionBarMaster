@@ -5,14 +5,16 @@ local PAD      = 8
 local ROW_H    = 22
 local BTN_H    = 22
 local DLG_W    = 280
-local DLG_H    = 120
+local DLG_H    = 140
 local TXTDLG_W = 420
 
 ---Build the Save Profile modal dialog.
----Inserts a new entry into ns.db.profiles and calls onSaved() on confirm.
----@param parent  table  LibNUI frame (the main window)
+---Captures with the grid's checkbox filter: excluding any bar produces a
+---partial, class/spec-agnostic "shared" profile (see ns.Capture). Inserts a
+---new entry into ns.db.profiles and calls onSaved() on confirm.
+---@param parent  table  LibNUI frame (the main window; reads parent._barsGrid)
 ---@param onSaved fun()  called after a profile is saved (e.g. refresh the list)
----@return table  dialog frame (exposes ._nameBox for the Save button to focus)
+---@return table  dialog frame (exposes ._nameBox to focus, ._note to describe scope)
 function ns.BuildSaveDialog(parent, onSaved)
   -- Dialogs are NOT `special`: CloseSpecialWindows hides every visible special
   -- frame at once, so Escape would close the main window along with the dialog.
@@ -47,14 +49,31 @@ function ns.BuildSaveDialog(parent, onSaved)
   }
   dlg._nameBox = nameBox
 
+  -- scope note ("Saving all bars" / "Saving N of M bars — shared");
+  -- text set by the window's Save button from the current checkbox state
+  dlg._note = ui.Label:new{
+    parent   = dlg,
+    fontObj  = "GameFontHighlightSmall",
+    position = {
+      TopLeft = { dlg.titlebar, ui.edge.BottomLeft, PAD, -(PAD + ROW_H + 4 + ROW_H + 4) },
+      Width   = DLG_W - PAD * 2,
+      Height  = ROW_H,
+    },
+  }
+
   DoSave = function()
     local name = nameBox:Text()
     if name == "" then return end
-    local profile = ns.Capture()
+    local profile = ns.Capture(parent._barsGrid.GetChecked())
     local encoded = ns.Encode(profile)
     table.insert(ns.db.profiles, {
-      name = name, char = profile.char, class = profile.class,
-      spec = profile.spec, encoded = encoded,
+      name    = name,
+      char    = profile.char,
+      -- partial captures blank class/spec; store nil so the list treats the
+      -- entry as shared (visible to every class, [s] tag)
+      class   = profile.class ~= "" and profile.class or nil,
+      spec    = profile.spec  ~= "" and profile.spec  or nil,
+      encoded = encoded,
     })
     onSaved()
     dlg:Hide()

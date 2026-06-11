@@ -15,10 +15,10 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 | File | Purpose |
 |---|---|
 | `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`) |
-| `capture.lua` | `ns.Capture() → profile` — builds profile from current character state |
+| `capture.lua` | `ns.Capture(barFilter?) → profile` — builds profile from current character state; partial shared profiles |
 | `restore.lua` | `ns.Restore(profile, barFilter?)` — applies profile; no-op in combat. Flyout pre-pass + per-slot restore |
 | `restore_pass.lua` | Helper passes: `ns.RestoreMacrosAndSlots`, `ns.RestoreBindings`, `ns.RestorePetBar`, `ns.ClearUnusedSlots` |
-| `serialize.lua` | `ns.Encode(profile) → string`, `ns.Decode(text) → profile, err`; format v2 |
+| `serialize.lua` | `ns.Encode(profile) → string`, `ns.Decode(text) → profile, err`; format v2 (full) / v3 (partial) |
 | `autosave.lua` | Auto-saves on `PLAYER_ENTERING_WORLD`, `ACTIVE_TALENT_GROUP_CHANGED`; `ns.AutoSave()` |
 | `profilelist.lua` | `ns.BuildProfileList(parent, onSelect) → scroll, Refresh, GetSelected, SetSelected, SetClassFilter`; pooled rows |
 | `classfilter.lua` | `ns.BuildClassFilter(parent, position, onSelect)` — class dropdown filter widget |
@@ -40,7 +40,8 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 
 ```lua
 ns.CaptureEscape(frame)               -- close frame on Escape w/o CloseSpecialWindows (frame must not be `special`)
-ns.Capture()                          -- → profile table (no args)
+ns.Capture(barFilter?)                -- → profile table; barFilter excluding any bar → PARTIAL shared
+                                      --   profile (profile.bars, class/spec "", no binds, macros trimmed)
 ns.Restore(profile, barFilter?)       -- applies profile; no-op in combat. barFilter: { [barNum|"pet"] = bool }, false = skip
 ns.Encode(profile)                    -- → copyable text string
 ns.Decode(text)                       -- → profile, err (nil, msg on failure)
@@ -123,6 +124,9 @@ profile = {
   macros   = { { id=int, name=string, icon=string, body=string }, ... },
   petslots = { { id=int, type="token"|"spell", index=int|nil, strindex=string|nil }, ... },
   outfits  = { string, ... },  -- outfit names (unused at restore time; reserved)
+  bars     = { int, ... }|nil, -- PARTIAL profiles only: captured internal bar numbers (1-15).
+                               -- Restore touches ONLY these bars (place + clear strays);
+                               -- all other bars, bindings, and pet bar are left alone.
 }
 ```
 
@@ -149,7 +153,7 @@ profile = {
 
 `ns.Encode` packs the profile via `Pack` into a binary byte array, prepends a 5-byte header `[version(1)][crc32(4)]`, base64-encodes the whole frame, and wraps it in `# …` comment lines (60-char width). `ns.Decode` strips comments, base64-decodes, verifies CRC, then unpacks.
 
-**Current format version: 2.** Version 2 adds a `profSlot` byte after `strindex` for each slot. Version 1 profiles are still readable (the `profSlot` byte is absent and defaults to 0).
+**Current max format version: 3.** Version 2 adds a `profSlot` byte after `strindex` for each slot; version 3 appends the captured-bars list (count byte + bar bytes) after outfits. **Full profiles still encode as v2** so earlier addon revisions can read them; v3 is emitted only for partial profiles (`profile.bars` set). Versions 1-2 remain readable.
 
 ---
 
@@ -165,6 +169,8 @@ profile = {
 6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet, never clears unused pet slots.
 
 `barFilter` (`{ [barNum|"pet"] = bool }`, from the grid checkboxes via `GetChecked()`): entries set to `false` are skipped by slot restore and unused-slot clearing.
+
+**Partial (shared) profiles** (`profile.bars` present): the effective filter is the intersection of the captured-bar set and the caller's barFilter — bars outside the captured set are never touched; bindings are absent by construction (`RestoreBindings` is skipped when the profile has none); the pet bar restores only if captured. Saved from the window with any grid checkbox unchecked; stored with `class`/`spec = nil` in the DB so the list shows them to every character (`[s]` tag, ignores class/spec filters). The window previews the current character's live bars when no profile is selected, so the save checkboxes always have rows to act on.
 
 ---
 
