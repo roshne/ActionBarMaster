@@ -3,6 +3,9 @@ local _, ns = ...
 local function DoAutoSave()
   -- In combat, Capture degrades (temp-macro resolution needs the protected
   -- PickupAction) — defer rather than snapshot wrong data
+  -- ns:delay is a single-slot timer: any concurrent ns.delay call elsewhere in
+  -- this addon would silently cancel this retry. Safe today (no other callers),
+  -- but keep this in mind before adding a new ns.delay call to the addon.
   if InCombatLockdown() then
     ns:delay(2000, DoAutoSave)
     return
