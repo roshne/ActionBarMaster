@@ -121,6 +121,7 @@ local function getWindow()
     position = { Center = {}, Width = WIN_W, Height = WIN_H },
   }
   ns.CaptureEscape(f)
+  f:SetScript("OnHide", function() ns:Open() end)
 
   -- Header bar sits between the titlebar and the scroll area.
   -- All header controls are parented to hdrBar so z-ordering is predictable.

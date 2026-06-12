@@ -31,7 +31,6 @@ local function ensureWindow()
       ns.AutoSave()
     end
     detail.currentFinding = nil
-    ns:Open()
   end)
 
   detail.subtitle = ui.Label:new{
