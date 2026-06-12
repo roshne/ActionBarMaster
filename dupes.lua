@@ -9,7 +9,8 @@ local ACK_W   = 72
 local BTN_H   = 22
 local SCAN_W  = 60
 local CHAR_W  = 110
-local TOGGL_W = 90
+local TOGGL_W   = 90
+local AUTOSAVE_W = 80
 
 local function getAcked()
   if not ns.db.ackedDupes then ns.db.ackedDupes = {} end
@@ -138,7 +139,7 @@ local function getWindow()
     position = {
       TopLeft = { hdrBar, ui.edge.TopLeft,
                   PAD + SCAN_W + PAD + CHAR_W + PAD + TOGGL_W + PAD, -PAD },
-      Width  = WIN_W - PAD*5 - SCAN_W - CHAR_W - TOGGL_W,
+      Width  = WIN_W - PAD*6 - SCAN_W - CHAR_W - TOGGL_W - AUTOSAVE_W,
       Height = BTN_H,
     },
   }
@@ -304,6 +305,18 @@ local function getWindow()
     toggleBtn:TextAlign("CENTER")
     refresh()
   end)
+
+  local autosaveBtn = ui.Button:new{
+    parent   = hdrBar,
+    template = "UIPanelButtonTemplate",
+    glow     = false,
+    onClick  = function() ns.AutoSave() end,
+    position = {
+      TopRight = { hdrBar, ui.edge.TopRight, -PAD, -PAD },
+      Width    = AUTOSAVE_W, Height = BTN_H,
+    },
+  }
+  autosaveBtn:Text("Autosave"); autosaveBtn:TextAlign("CENTER")
 
   local closeBtn = ui.Button:new{
     parent   = f,
