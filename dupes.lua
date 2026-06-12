@@ -160,7 +160,7 @@ local function getWindow()
   -- State
   local showIgnored  = false
   local charOptions  = { "All" }
-  local charIdx      = 1
+  local charIdx      = 0  -- resolved to current char on first refresh
 
   local function rebuildCharOptions()
     local seen = {}
@@ -225,6 +225,13 @@ local function getWindow()
   -- Refresh
   refresh = function()
     rebuildCharOptions()
+    if charIdx == 0 then
+      local me = UnitName("player")
+      charIdx = 1
+      for i, c in ipairs(charOptions) do
+        if c == me then charIdx = i; break end
+      end
+    end
     charBtn:Text(charOptions[charIdx])
     charBtn:TextAlign("CENTER")
 
