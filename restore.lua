@@ -4,6 +4,8 @@ local PickupSpell   = C_Spell and C_Spell.PickupSpell   or _G.PickupSpell
 local PickupItem    = C_Item  and C_Item.PickupItem      or _G.PickupItem
 local GetSpellLink  = C_Spell and C_Spell.GetSpellLink  or _G.GetSpellLink
 local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _G.PickupSpellBookItem
+local GetSpellName  = C_Spell and C_Spell.GetSpellName
+                   or function(id) return (GetSpellInfo(id)) end
 
 local MAX_BARS = 180
 
@@ -23,6 +25,24 @@ local function PickupSpellFromBook(targetSid)
     end
   end
   return false
+end
+
+-- Last-resort pickup by spell NAME: class-variant racials (Orc Blood Fury) are
+-- separate spells per class sharing one name — if the variant table ever
+-- drifts, the known variant is still findable by name.
+local function PickupSpellFromBookByName(name)
+  if not name or not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines) then return end
+  for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+    local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
+    for i = 1, info.numSpellBookItems do
+      local si = info.itemIndexOffset + i
+      local _, _, sid = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+      if sid and GetSpellName(sid) == name then
+        PickupSpellBookItem(si, Enum.SpellBookSpellBank.Player)
+        return true
+      end
+    end
+  end
 end
 
 local function Warn(msg)
@@ -153,9 +173,27 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           end
         end
       elseif s.type == "racial" then
+        -- same fallback ladder as the spell branch: racials with class
+        -- variants (e.g. Orc Blood Fury) live in the spellbook as the base
+        -- spell with an override active, and PickupSpell can fail for the
+        -- base ID — retry the override ID, then pick up by spellbook index
         local spells  = ns.GetRacialSpells(race, class)
         local spellID = spells[s.index]
-        if spellID then PickupSpell(spellID) end
+        if spellID then
+          PickupSpell(spellID)
+          if not GetCursorInfo() and overrides[spellID] then
+            PickupSpell(overrides[spellID])
+          end
+          if not GetCursorInfo() then
+            PickupSpellFromBook(spellID)
+          end
+          if not GetCursorInfo() and overrides[spellID] then
+            PickupSpellFromBook(overrides[spellID])
+          end
+          if not GetCursorInfo() then
+            PickupSpellFromBookByName(GetSpellName(spellID))
+          end
+        end
         if not GetCursorInfo() then
           Warn(slot .. "Missing racial #" .. s.index .. " for " .. (race or "?"))
         end
