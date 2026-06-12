@@ -268,7 +268,14 @@ local function getWindow()
   hdrBtn(PAD, SCAN_W, "Scan", function() refresh() end)
 
   charBtn = hdrBtn(PAD + SCAN_W + PAD, CHAR_W, "All", function()
-    charIdx = charIdx % #charOptions + 1
+    if charIdx == 1 then
+      local me = UnitName("player")
+      for i, c in ipairs(charOptions) do
+        if c == me then charIdx = i; break end
+      end
+    else
+      charIdx = 1
+    end
     refresh()
   end)
 
