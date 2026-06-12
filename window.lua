@@ -134,8 +134,9 @@ local function CreateWindow()
   local lx4 = lx3 + W2 + BSEP
   local rx1 = lx4 + W2 + GSEP
   local rx2 = rx1 + W2 + BSEP
+  local rx3 = rx2 + W2 + BSEP
   local LX = { lx1, lx2, lx3, lx4 }
-  local RX = { rx1, rx2 }
+  local RX = { rx1, rx2, rx3 }
 
   local btnDefs = {
     {
@@ -197,6 +198,10 @@ local function CreateWindow()
         impDlg:Show()
         impDlg._box._widget:SetFocus()
       end,
+    },
+    {
+      label = "Dupes", x = RX[3],
+      fn = function() ns.OpenDupes() end,
     },
   }
 

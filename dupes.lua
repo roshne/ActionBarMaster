@@ -336,8 +336,10 @@ local function getWindow()
   return f
 end
 
-ns:registerCommand("dupes", nil, function()
+function ns.OpenDupes()
   local w = getWindow()
   w._refresh()
   w:Show()
-end, "Scan profiles for duplicate action bar slots")
+end
+
+ns:registerCommand("dupes", nil, ns.OpenDupes, "Scan profiles for duplicate action bar slots")
