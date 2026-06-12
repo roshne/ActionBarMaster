@@ -17,7 +17,11 @@ local byRace = {
   Worgen   = { 68992, 87840 },       -- Darkflight, Two Forms
 
   -- Horde Core
-  Orc      = { 20572 },              -- Blood Fury
+  Orc      = {                       -- Blood Fury (class-specific: AP / AP+SP / SP versions
+    { SHAMAN=33697, MONK=33697,      -- are SEPARATE spells, not overrides — probe-verified
+      MAGE=33702, PRIEST=33702, WARLOCK=33702,
+      default=20572 },
+  },
   Troll    = { 26297 },              -- Berserking
   Scourge  = { 7744,  20577 },       -- Will of the Forsaken, Cannibalize
   Tauren   = { 20549 },              -- War Stomp
