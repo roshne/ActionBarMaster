@@ -337,6 +337,7 @@ local function getWindow()
 end
 
 function ns.OpenDupes()
+  ns:HideMainWindow()
   local w = getWindow()
   w._refresh()
   w:Show()

@@ -268,4 +268,8 @@ function ns:Open()
   window:Show()
 end
 
+function ns:HideMainWindow()
+  if window then window:Hide() end
+end
+
 ns:registerCommand("", nil, function(self) self:Open() end, "Open Action Bar Master")
