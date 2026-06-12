@@ -86,10 +86,13 @@ local function scan(wantAcked)
               local slotNames = {}
               for _, id in ipairs(slots) do table.insert(slotNames, slotLabel(id)) end
               table.insert(findings, {
-                label    = "[" .. p.name .. "]  " .. actionLabel(k)
-                           .. "  --  " .. table.concat(slotNames, ", "),
-                ackKey   = ackKey,
-                charName = p.char or p.name,
+                label       = "[" .. p.name .. "]  " .. actionLabel(k)
+                              .. "  --  " .. table.concat(slotNames, ", "),
+                ackKey      = ackKey,
+                charName    = p.char or p.name,
+                slotIDs     = slots,
+                actionName  = actionLabel(k),
+                profileName = p.name,
               })
             end
           end
@@ -208,6 +211,12 @@ local function getWindow()
         Height   = BTN_H,
       },
     }
+    row.rowF._widget:EnableMouse(true)
+    row.rowF:SetScript("OnMouseUp", function(_, btn)
+      if btn == "LeftButton" and row.currentFinding then
+        if ns.ShowDupeDetail then ns.ShowDupeDetail(row.currentFinding) end
+      end
+    end)
     rows[n] = row
     return row
   end
@@ -240,7 +249,8 @@ local function getWindow()
       local row = acquireRow(i)
       row.rowF:TopLeft(content, ui.edge.TopLeft, 0, -(i - 1) * (ROW_H + 2))
       row.label:Text(fd.label)
-      row.currentAckKey = fd.ackKey
+      row.currentAckKey  = fd.ackKey
+      row.currentFinding = fd
       row.ackBtn:Text(btnLabel)
       row.ackBtn:TextAlign("CENTER")
       row.rowF:Show()
