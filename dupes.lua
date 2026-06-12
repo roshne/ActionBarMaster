@@ -1,7 +1,7 @@
 local _, ns = ...
 local ui = ns.ui
 
-local WIN_W   = 560
+local WIN_W     = 640
 local WIN_H   = 400
 local PAD     = 8
 local ROW_H   = 22
@@ -11,6 +11,7 @@ local SCAN_W  = 60
 local CHAR_W  = 110
 local TOGGL_W   = 90
 local AUTOSAVE_W = 80
+local SPEC_W     = 90
 
 local function getAcked()
   if not ns.db.ackedDupes then ns.db.ackedDupes = {} end
@@ -95,6 +96,7 @@ local function scan(wantAcked)
                 actionName  = actionLabel(k),
                 profileName = p.name,
                 profile     = p,
+                spec        = p.spec or "",
               })
             end
           end
@@ -139,8 +141,8 @@ local function getWindow()
     fontObj = "GameFontHighlightSmall",
     position = {
       TopLeft = { hdrBar, ui.edge.TopLeft,
-                  PAD + SCAN_W + PAD + CHAR_W + PAD + TOGGL_W + PAD, -PAD },
-      Width  = WIN_W - PAD*6 - SCAN_W - CHAR_W - TOGGL_W - AUTOSAVE_W,
+                  PAD + SCAN_W + PAD + CHAR_W + PAD + TOGGL_W + PAD + SPEC_W + PAD, -PAD },
+      Width  = WIN_W - PAD*7 - SCAN_W - CHAR_W - TOGGL_W - SPEC_W - AUTOSAVE_W,
       Height = BTN_H,
     },
   }
@@ -163,6 +165,7 @@ local function getWindow()
   local showIgnored  = false
   local charOptions  = { "All" }
   local charIdx      = 0  -- resolved to current char on first refresh
+  local specFilter   = true -- true = current spec only; resolved on first refresh
 
   local function rebuildCharOptions()
     local seen = {}
@@ -176,8 +179,9 @@ local function getWindow()
 
   -- Row pool
   local rows    = {}
-  local refresh -- forward-declared; assigned below
-  local charBtn -- forward-declared; text updated in refresh
+  local refresh  -- forward-declared; assigned below
+  local charBtn  -- forward-declared; text updated in refresh
+  local specBtn  -- forward-declared; text updated in refresh
 
   local function acquireRow(n)
     if rows[n] then return rows[n] end
@@ -249,6 +253,23 @@ local function getWindow()
       findings = filtered
     end
 
+    -- spec filter
+    if specFilter then
+      local si = GetSpecialization and GetSpecialization()
+      local cs = si and si > 0 and select(2, GetSpecializationInfo(si))
+      specBtn:Text(cs or "All Specs")
+      if cs then
+        local tmp = {}
+        for _, fd in ipairs(findings) do
+          if fd.spec == cs then table.insert(tmp, fd) end
+        end
+        findings = tmp
+      end
+    else
+      specBtn:Text("All Specs")
+    end
+    specBtn:TextAlign("CENTER")
+
     local noun = showIgnored and "ignored" or "duplicate"
     countLabel:Text(#findings == 0
       and ("|cff80ff80No " .. noun .. "s.|r")
@@ -304,6 +325,11 @@ local function getWindow()
     showIgnored = not showIgnored
     toggleBtn:Text(showIgnored and "View Active" or "View Ignored")
     toggleBtn:TextAlign("CENTER")
+    refresh()
+  end)
+
+  specBtn = hdrBtn(PAD + SCAN_W + PAD + CHAR_W + PAD + TOGGL_W + PAD, SPEC_W, "Spec", function()
+    specFilter = not specFilter
     refresh()
   end)
 
