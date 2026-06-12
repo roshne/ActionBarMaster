@@ -50,17 +50,17 @@ local function actionLabel(key)
     return name and ("Mount: " .. name) or key
   end
   if t == "macro"     then return "Macro: " .. (key:match("^macro|([^|]+)|") or "?") end
-  if t == "summonpet" then return "Pet: " .. (key:match("|(.-)$") or "?"):sub(1, 10) .. "…" end
+  if t == "summonpet" then return "Pet: " .. (key:match("|(.-)$") or "?"):sub(1, 10) .. "..." end
   return key
 end
 
--- Slot ID → "Bar Label #col"
+-- Slot ID -> "Bar Label #col"
 local function slotLabel(slotID)
   return ns.GetBarLabel(math.ceil(slotID / 12)) .. " #" .. ((slotID - 1) % 12 + 1)
 end
 
 -- Decode all profiles and collect duplicates.
--- wantAcked=false → active (unacknowledged); wantAcked=true → ignored (acknowledged).
+-- wantAcked=false -> active (unacknowledged); wantAcked=true -> ignored (acknowledged).
 -- Each finding: { label, ackKey, charName }
 local function scan(wantAcked)
   local findings = {}
@@ -87,7 +87,7 @@ local function scan(wantAcked)
               for _, id in ipairs(slots) do table.insert(slotNames, slotLabel(id)) end
               table.insert(findings, {
                 label    = "[" .. p.name .. "]  " .. actionLabel(k)
-                           .. "  —  " .. table.concat(slotNames, ", "),
+                           .. "  --  " .. table.concat(slotNames, ", "),
                 ackKey   = ackKey,
                 charName = p.char or p.name,
               })
@@ -101,7 +101,7 @@ local function scan(wantAcked)
   return findings
 end
 
--- ── Window ────────────────────────────────────────────────────────────────────
+-- Window
 
 local dupeWindow = nil
 
@@ -117,24 +117,34 @@ local function getWindow()
   }
   ns.CaptureEscape(f)
 
-  -- ── Header controls ───────────────────────────────────────────────────────
+  -- Header bar sits between the titlebar and the scroll area.
+  -- All header controls are parented to hdrBar so z-ordering is predictable.
+  local hdrBar = ui.Frame:new{
+    parent   = f,
+    position = {
+      TopLeft  = { f.titlebar, ui.edge.BottomLeft,  0, 0 },
+      TopRight = { f.titlebar, ui.edge.BottomRight, 0, 0 },
+      Height   = PAD + BTN_H + PAD,
+    },
+  }
+
   local countLabel = ui.Label:new{
-    parent  = f,
+    parent  = hdrBar,
     fontObj = "GameFontHighlightSmall",
     position = {
-      TopLeft = { f.titlebar, ui.edge.BottomLeft,
+      TopLeft = { hdrBar, ui.edge.TopLeft,
                   PAD + SCAN_W + PAD + CHAR_W + PAD + TOGGL_W + PAD, -PAD },
       Width  = WIN_W - PAD*5 - SCAN_W - CHAR_W - TOGGL_W,
       Height = BTN_H,
     },
   }
 
-  local CONTENT_W = WIN_W - PAD * 2 - 20
+  local CONTENT_W = WIN_W - PAD * 2 - 20  -- 20 for scrollbar
   local scroll = ui.ScrollFrame:new{
     parent   = f,
     position = {
-      TopLeft     = { f.titlebar, ui.edge.BottomLeft, PAD, -(PAD + BTN_H + PAD) },
-      BottomRight = { f, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
+      TopLeft     = { hdrBar, ui.edge.BottomLeft,  PAD, 0 },
+      BottomRight = { f,      ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
     },
   }
   local content = ui.Frame:new{
@@ -143,7 +153,7 @@ local function getWindow()
   }
   scroll:Child(content)
 
-  -- ── State ─────────────────────────────────────────────────────────────────
+  -- State
   local showIgnored  = false
   local charOptions  = { "All" }
   local charIdx      = 1
@@ -158,7 +168,7 @@ local function getWindow()
     if charIdx > #charOptions then charIdx = 1 end
   end
 
-  -- ── Row pool ──────────────────────────────────────────────────────────────
+  -- Row pool
   local rows    = {}
   local refresh -- forward-declared; assigned below
   local charBtn -- forward-declared; text updated in refresh
@@ -202,7 +212,7 @@ local function getWindow()
     return row
   end
 
-  -- ── Refresh ───────────────────────────────────────────────────────────────
+  -- Refresh
   refresh = function()
     rebuildCharOptions()
     charBtn:Text(charOptions[charIdx])
@@ -239,16 +249,15 @@ local function getWindow()
     content:Height(math.max(#findings * (ROW_H + 2), 1))
   end
 
-  -- ── Header buttons ────────────────────────────────────────────────────────
-  local hdrY = -PAD
+  -- Header buttons (parented to hdrBar)
   local function hdrBtn(x, w, label, fn)
     local b = ui.Button:new{
-      parent   = f,
+      parent   = hdrBar,
       template = "UIPanelButtonTemplate",
       glow     = false,
       onClick  = fn,
       position = {
-        TopLeft = { f.titlebar, ui.edge.BottomLeft, x, hdrY },
+        TopLeft = { hdrBar, ui.edge.TopLeft, x, -PAD },
         Width   = w, Height = BTN_H,
       },
     }
