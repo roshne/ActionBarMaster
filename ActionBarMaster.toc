@@ -21,6 +21,7 @@ restore_pass.lua
 restore.lua
 serialize.lua
 autosave.lua
+dupes.lua
 profilelist.lua
 classfilter.lua
 barsicons.lua

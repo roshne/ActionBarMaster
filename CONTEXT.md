@@ -81,7 +81,8 @@ Managed by LibNAddOn via `X-NUI-DB` / `X-NUI-DB-VERSION`.
 ActionBarMasterDB = {
   version   = 2,
   windowPos = { x = number, y = number },  -- saved window position (TOPLEFT anchor)
-  barOrder  = { int, ... },   -- abm bar numbers in display order (drag-to-reorder)
+  barOrder   = { int, ... },   -- abm bar numbers in display order (drag-to-reorder)
+  ackedDupes = { [string] = true, ... },  -- lazy-init; key = "profileName|actionKey"; ignored duplicates
   profiles  = {               -- array; index 1 = most recent
     {
       name     = string,      -- display name (user-entered or "Char - Spec")
@@ -220,10 +221,10 @@ Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used a
 |---|---|
 | `/bars`, `/wbars` | Open the main window |
 | `/bars sn` | Autosave now |
+| `/bars dupes` | Scan all profiles for duplicate slots; Ignore button per finding |
 | `/bars debug flyouts` | Dump flyout spellbook and bar-slot state |
 | `/bars debug flyoutrestore` | Test `PickupSpellBookItem` for each flyout, show cursor state |
 | `/bars debug capture` | Show flyout entries from a live `Capture()` |
-| `/bars debug flyoutplace` | Test pickup + `PlaceAction` for Summon Demon on slot 180 (Warlock) |
 
 ---
 
