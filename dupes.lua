@@ -93,6 +93,7 @@ local function scan(wantAcked)
                 slotIDs     = slots,
                 actionName  = actionLabel(k),
                 profileName = p.name,
+                profile     = p,
               })
             end
           end
