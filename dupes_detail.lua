@@ -26,6 +26,12 @@ local function ensureWindow()
     position = { Center = {}, Width = DWIN_W, Height = 180 },
   }
   ns.CaptureEscape(detail.f)
+  detail.f:SetScript("OnHide", function()
+    if detail.currentFinding and detail.currentFinding.charName == UnitName("player") then
+      ns.AutoSave()
+    end
+    detail.currentFinding = nil
+  end)
 
   detail.subtitle = ui.Label:new{
     parent  = detail.f,
@@ -135,5 +141,6 @@ function ns.ShowDupeDetail(finding)
 
   local contentH = n * CELL_W + (n - 1) * DBAR_GAP
   detail.f:Height(30 + PAD + SUBTITLE_H + PAD + contentH + PAD)
+  detail.currentFinding = finding
   detail.f:Show()
 end
