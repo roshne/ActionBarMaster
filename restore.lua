@@ -153,9 +153,24 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           end
         end
       elseif s.type == "racial" then
+        -- same fallback ladder as the spell branch: racials with class
+        -- variants (e.g. Orc Blood Fury) live in the spellbook as the base
+        -- spell with an override active, and PickupSpell can fail for the
+        -- base ID — retry the override ID, then pick up by spellbook index
         local spells  = ns.GetRacialSpells(race, class)
         local spellID = spells[s.index]
-        if spellID then PickupSpell(spellID) end
+        if spellID then
+          PickupSpell(spellID)
+          if not GetCursorInfo() and overrides[spellID] then
+            PickupSpell(overrides[spellID])
+          end
+          if not GetCursorInfo() then
+            PickupSpellFromBook(spellID)
+          end
+          if not GetCursorInfo() and overrides[spellID] then
+            PickupSpellFromBook(overrides[spellID])
+          end
+        end
         if not GetCursorInfo() then
           Warn(slot .. "Missing racial #" .. s.index .. " for " .. (race or "?"))
         end
