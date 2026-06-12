@@ -46,6 +46,21 @@ local function getIcon(entry, macros)
       end
     end
   elseif t == "flyout" then
+    if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines then
+      for idx = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+        local info = C_SpellBook.GetSpellBookSkillLineInfo(idx)
+        if info then
+          for i = 1, info.numSpellBookItems do
+            local si = info.itemIndexOffset + i
+            local spellType, id = C_SpellBook.GetSpellBookItemType(si, Enum.SpellBookSpellBank.Player)
+            if spellType == Enum.SpellBookItemType.Flyout and id == entry.index then
+              return C_SpellBook.GetSpellBookItemTexture(si, Enum.SpellBookSpellBank.Player)
+            end
+          end
+        end
+      end
+    end
+    -- fallback: first known spell inside the flyout (pre-10.0 or flyout not in spellbook)
     local _, _, numSlots = GetFlyoutInfo(entry.index)
     if numSlots and numSlots > 0 then
       for i = 1, numSlots do
