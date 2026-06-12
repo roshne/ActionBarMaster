@@ -1,20 +1,23 @@
 local _, ns = ...
 local ui = ns.ui
 
-local WIN_W = 560
-local WIN_H = 400
-local PAD   = 8
-local ROW_H = 22
-local ACK_W = 64
-local BTN_H = 22
+local WIN_W   = 560
+local WIN_H   = 400
+local PAD     = 8
+local ROW_H   = 22
+local ACK_W   = 72
+local BTN_H   = 22
+local SCAN_W  = 60
+local CHAR_W  = 110
+local TOGGL_W = 90
 
 local function getAcked()
   if not ns.db.ackedDupes then ns.db.ackedDupes = {} end
   return ns.db.ackedDupes
 end
 
--- Stable identity key for a slot. Returns nil for ephemeral types that should
--- not be tracked. Macros are keyed by name+body so a re-capture doesn't re-flag.
+-- Stable identity key for a slot. nil for ephemeral types.
+-- Macros keyed by name+body so re-captures don't re-flag.
 local function actionKey(slot, macroById)
   local t = slot.type
   if t == "petaction" or t == "futurespell" then return nil end
@@ -30,16 +33,14 @@ local function actionKey(slot, macroById)
   return t .. "|" .. (slot.index or 0)
 end
 
--- Best-effort human-readable label for a key.
+-- Best-effort human-readable label for an action key.
 local function actionLabel(key)
   local t  = key:match("^([^|]+)|")
   local id = tonumber(key:match("|(%d+)$"))
   if (t == "spell" or t == "racial") and id then
     return GetSpellInfo and GetSpellInfo(id) or key
   end
-  if t == "item" and id then
-    return GetItemInfo and GetItemInfo(id) or key
-  end
+  if t == "item" and id then return GetItemInfo and GetItemInfo(id) or key end
   if t == "flyout" and id then
     local name = GetFlyoutInfo and GetFlyoutInfo(id)
     return name and ("Flyout: " .. name) or key
@@ -48,12 +49,8 @@ local function actionLabel(key)
     local name = C_MountJournal and C_MountJournal.GetMountInfoByID(id)
     return name and ("Mount: " .. name) or key
   end
-  if t == "macro" then
-    return "Macro: " .. (key:match("^macro|([^|]+)|") or "?")
-  end
-  if t == "summonpet" then
-    return "Pet: " .. (key:match("|(.-)$") or "?"):sub(1, 10) .. "…"
-  end
+  if t == "macro"     then return "Macro: " .. (key:match("^macro|([^|]+)|") or "?") end
+  if t == "summonpet" then return "Pet: " .. (key:match("|(.-)$") or "?"):sub(1, 10) .. "…" end
   return key
 end
 
@@ -62,9 +59,10 @@ local function slotLabel(slotID)
   return ns.GetBarLabel(math.ceil(slotID / 12)) .. " #" .. ((slotID - 1) % 12 + 1)
 end
 
--- Decode every profile; return findings not yet acknowledged.
--- Each finding: { label=string, ackKey=string }
-local function scanAll()
+-- Decode all profiles and collect duplicates.
+-- wantAcked=false → active (unacknowledged); wantAcked=true → ignored (acknowledged).
+-- Each finding: { label, ackKey, charName }
+local function scan(wantAcked)
   local findings = {}
   local acked    = getAcked()
   for _, p in ipairs(ns.db.profiles) do
@@ -73,7 +71,6 @@ local function scanAll()
       if profile then
         local macroById = {}
         for _, m in ipairs(profile.macros or {}) do macroById[m.id] = m end
-
         local byKey = {}
         for _, slot in ipairs(profile.slots or {}) do
           local k = actionKey(slot, macroById)
@@ -82,19 +79,17 @@ local function scanAll()
             table.insert(byKey[k], slot.id)
           end
         end
-
         for k, slots in pairs(byKey) do
           if #slots >= 2 then
             local ackKey = p.name .. "|" .. k
-            if not acked[ackKey] then
+            if wantAcked == (acked[ackKey] == true) then
               local slotNames = {}
-              for _, id in ipairs(slots) do
-                table.insert(slotNames, slotLabel(id))
-              end
+              for _, id in ipairs(slots) do table.insert(slotNames, slotLabel(id)) end
               table.insert(findings, {
-                label  = "[" .. p.name .. "]  " .. actionLabel(k)
-                         .. "  —  " .. table.concat(slotNames, ", "),
-                ackKey = ackKey,
+                label    = "[" .. p.name .. "]  " .. actionLabel(k)
+                           .. "  —  " .. table.concat(slotNames, ", "),
+                ackKey   = ackKey,
+                charName = p.char or p.name,
               })
             end
           end
@@ -122,22 +117,24 @@ local function getWindow()
   }
   ns.CaptureEscape(f)
 
+  -- ── Header controls ───────────────────────────────────────────────────────
   local countLabel = ui.Label:new{
-    parent   = f,
-    fontObj  = "GameFontHighlightSmall",
+    parent  = f,
+    fontObj = "GameFontHighlightSmall",
     position = {
-      TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + 60 + PAD, -PAD },
-      Width   = WIN_W - PAD * 4 - 60,
-      Height  = BTN_H,
+      TopLeft = { f.titlebar, ui.edge.BottomLeft,
+                  PAD + SCAN_W + PAD + CHAR_W + PAD + TOGGL_W + PAD, -PAD },
+      Width  = WIN_W - PAD*5 - SCAN_W - CHAR_W - TOGGL_W,
+      Height = BTN_H,
     },
   }
 
-  local CONTENT_W = WIN_W - PAD * 2 - 20  -- 20 for scrollbar
+  local CONTENT_W = WIN_W - PAD * 2 - 20
   local scroll = ui.ScrollFrame:new{
     parent   = f,
     position = {
-      TopLeft     = { f.titlebar, ui.edge.BottomLeft,  PAD, -(PAD + BTN_H + PAD) },
-      BottomRight = { f,          ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
+      TopLeft     = { f.titlebar, ui.edge.BottomLeft, PAD, -(PAD + BTN_H + PAD) },
+      BottomRight = { f, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD },
     },
   }
   local content = ui.Frame:new{
@@ -146,9 +143,25 @@ local function getWindow()
   }
   scroll:Child(content)
 
-  -- Row pool: Label + Ignore button, re-filled on every refresh.
-  local rows   = {}
-  local refresh  -- forward-declared; assigned below
+  -- ── State ─────────────────────────────────────────────────────────────────
+  local showIgnored  = false
+  local charOptions  = { "All" }
+  local charIdx      = 1
+
+  local function rebuildCharOptions()
+    local seen = {}
+    charOptions = { "All" }
+    for _, p in ipairs(ns.db.profiles) do
+      local c = p.char or p.name
+      if c and not seen[c] then seen[c] = true; table.insert(charOptions, c) end
+    end
+    if charIdx > #charOptions then charIdx = 1 end
+  end
+
+  -- ── Row pool ──────────────────────────────────────────────────────────────
+  local rows    = {}
+  local refresh -- forward-declared; assigned below
+  local charBtn -- forward-declared; text updated in refresh
 
   local function acquireRow(n)
     if rows[n] then return rows[n] end
@@ -171,10 +184,13 @@ local function getWindow()
       template = "UIPanelButtonTemplate",
       glow     = false,
       onClick  = function()
-        if row.currentAckKey then
+        if not row.currentAckKey then return end
+        if showIgnored then
+          getAcked()[row.currentAckKey] = nil
+        else
           getAcked()[row.currentAckKey] = true
-          refresh()
         end
+        refresh()
       end,
       position = {
         TopRight = { row.rowF, ui.edge.TopRight, 0, 0 },
@@ -182,43 +198,78 @@ local function getWindow()
         Height   = BTN_H,
       },
     }
-    row.ackBtn:Text("Ignore")
-    row.ackBtn:TextAlign("CENTER")
     rows[n] = row
     return row
   end
 
+  -- ── Refresh ───────────────────────────────────────────────────────────────
   refresh = function()
-    local findings = scanAll()
-    if #findings == 0 then
-      countLabel:Text("|cff80ff80No duplicates found.|r")
-    else
-      countLabel:Text(#findings .. " duplicate" .. (#findings == 1 and "" or "s") .. " found")
+    rebuildCharOptions()
+    charBtn:Text(charOptions[charIdx])
+    charBtn:TextAlign("CENTER")
+
+    local findings = scan(showIgnored)
+
+    -- character filter
+    local filterChar = charIdx > 1 and charOptions[charIdx]
+    if filterChar then
+      local filtered = {}
+      for _, fd in ipairs(findings) do
+        if fd.charName == filterChar then table.insert(filtered, fd) end
+      end
+      findings = filtered
     end
-    for i, finding in ipairs(findings) do
+
+    local noun = showIgnored and "ignored" or "duplicate"
+    countLabel:Text(#findings == 0
+      and ("|cff80ff80No " .. noun .. "s.|r")
+      or  (#findings .. " " .. noun .. (#findings == 1 and "" or "s") .. " found"))
+
+    local btnLabel = showIgnored and "Un-ignore" or "Ignore"
+    for i, fd in ipairs(findings) do
       local row = acquireRow(i)
       row.rowF:TopLeft(content, ui.edge.TopLeft, 0, -(i - 1) * (ROW_H + 2))
-      row.label:Text(finding.label)
-      row.currentAckKey = finding.ackKey
+      row.label:Text(fd.label)
+      row.currentAckKey = fd.ackKey
+      row.ackBtn:Text(btnLabel)
+      row.ackBtn:TextAlign("CENTER")
       row.rowF:Show()
     end
     for j = #findings + 1, #rows do rows[j].rowF:Hide() end
     content:Height(math.max(#findings * (ROW_H + 2), 1))
   end
 
-  local scanBtn = ui.Button:new{
-    parent   = f,
-    template = "UIPanelButtonTemplate",
-    glow     = false,
-    onClick  = function() refresh() end,
-    position = {
-      TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD, -PAD },
-      Width   = 60,
-      Height  = BTN_H,
-    },
-  }
-  scanBtn:Text("Scan")
-  scanBtn:TextAlign("CENTER")
+  -- ── Header buttons ────────────────────────────────────────────────────────
+  local hdrY = -PAD
+  local function hdrBtn(x, w, label, fn)
+    local b = ui.Button:new{
+      parent   = f,
+      template = "UIPanelButtonTemplate",
+      glow     = false,
+      onClick  = fn,
+      position = {
+        TopLeft = { f.titlebar, ui.edge.BottomLeft, x, hdrY },
+        Width   = w, Height = BTN_H,
+      },
+    }
+    b:Text(label); b:TextAlign("CENTER")
+    return b
+  end
+
+  hdrBtn(PAD, SCAN_W, "Scan", function() refresh() end)
+
+  charBtn = hdrBtn(PAD + SCAN_W + PAD, CHAR_W, "All", function()
+    charIdx = charIdx % #charOptions + 1
+    refresh()
+  end)
+
+  local toggleBtn
+  toggleBtn = hdrBtn(PAD + SCAN_W + PAD + CHAR_W + PAD, TOGGL_W, "View Ignored", function()
+    showIgnored = not showIgnored
+    toggleBtn:Text(showIgnored and "View Active" or "View Ignored")
+    toggleBtn:TextAlign("CENTER")
+    refresh()
+  end)
 
   local closeBtn = ui.Button:new{
     parent   = f,
@@ -228,12 +279,10 @@ local function getWindow()
     position = {
       Left   = { f, ui.edge.Center, -30, 0 },
       Bottom = { f, ui.edge.Bottom, 0,   PAD },
-      Width  = 60,
-      Height = BTN_H,
+      Width  = 60, Height = BTN_H,
     },
   }
-  closeBtn:Text("Close")
-  closeBtn:TextAlign("CENTER")
+  closeBtn:Text("Close"); closeBtn:TextAlign("CENTER")
 
   f._refresh = refresh
   dupeWindow  = f
