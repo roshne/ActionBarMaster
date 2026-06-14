@@ -215,6 +215,11 @@ Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used a
 - Retries every 2 seconds if spec is not yet resolved (specName == "" or profile.spec == "Unknown").
 - One autosave entry per `char + spec` — updates in place rather than appending.
 - New entries are inserted at index 1 (most recent first).
+
+## Manual save (`window_dialogs.lua` `BuildSaveDialog`)
+
+- New profiles are **front-inserted at index 1** (same ordering as autosave; "index 1 = most recent").
+- Saving into an existing **non-autosave** name prompts `ABM_CONFIRM_OVERWRITE` and overwrites that entry **in place** (keeps its position and table identity, so a live list selection stays valid — cf. #65) instead of silently duplicating. Autosave entries (keyed by char+spec) are not matched here.
 - Exposes `ns.AutoSave()` so the window's "Autosave Now" button and `/bars sn` can call it directly.
 
 ---
