@@ -71,23 +71,48 @@ function ns.RestoreBindings(binds)
 end
 
 ---Restore pet bar slots from a profile's petslots array.
----@param petslots table
-function ns.RestorePetBar(petslots)
+---@param petslots    table
+---@param clearUnused boolean?  blank pet slots absent from the profile (only when
+---                             the pet bar is actually in scope — see ns.Restore)
+function ns.RestorePetBar(petslots, clearUnused)
   if not IsPetActive() then return end
-  local tokens = {}
-  for i = 1, NUM_PET_ACTION_SLOTS do
-    local name, _, isToken = GetPetActionInfo(i)
-    if isToken then tokens[name] = i end
+
+  -- Re-scan the token slots for each placement: placing a token swaps the two
+  -- slots' contents, so a name->slot map built once goes stale across
+  -- placements and would move the wrong token (B4).
+  local function tokenSlot(name)
+    for i = 1, NUM_PET_ACTION_SLOTS do
+      local n, _, isToken = GetPetActionInfo(i)
+      if isToken and n == name then return i end
+    end
   end
+
   for _, p in ipairs(petslots) do
-    if p.type == "token" and tokens[p.strindex] then
-      PickupPetAction(tokens[p.strindex])
-      PickupPetAction(p.id)
+    if p.type == "token" then
+      local from = tokenSlot(p.strindex)
+      if from then
+        PickupPetAction(from)
+        PickupPetAction(p.id)
+      end
     elseif p.type == "spell" then
       PickupPetSpell(p.index)
       PickupPetAction(p.id)
     end
     ClearCursor()
+  end
+
+  -- Mirror the main bars (ClearUnusedSlots): blank pet slots not in the profile
+  -- rather than leaving stragglers (gap #7). Skipped when the pet bar is out of
+  -- scope, where petslots is empty but the bar must be left untouched.
+  if clearUnused then
+    local used = {}
+    for _, p in ipairs(petslots) do used[p.id] = true end
+    for i = 1, NUM_PET_ACTION_SLOTS do
+      if not used[i] then
+        PickupPetAction(i)
+        ClearCursor()
+      end
+    end
   end
 end
 

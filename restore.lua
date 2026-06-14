@@ -356,7 +356,9 @@ function ns.Restore(profile, barFilter)
   if #(profile.binds or {}) > 0 then
     ns.RestoreBindings(profile.binds)
   end
-  ns.RestorePetBar(petslots)
+  -- clear unused pet slots only when the pet bar is in scope (not filtered out):
+  -- an out-of-scope pet bar arrives here as empty petslots and must be untouched
+  ns.RestorePetBar(petslots, not (barFilter and barFilter.pet == false))
   ns.Print("Bars restored.")
 
   -- flush the collected misses as one summary; if item-info lookups are still
