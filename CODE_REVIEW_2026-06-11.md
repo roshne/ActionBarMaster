@@ -112,12 +112,15 @@ selection the same way.
 for an odd spellbook entry, `map[nil] = ...` throws "table index is nil" — Capture errors
 (and autosave re-errors every retry). One-line hardening: `if ovr and ovr ~= spellId`.
 
-### B9. Verify `PickupPetSpell` still exists in retail
+### B9. Verify `PickupPetSpell` still exists in retail — **GUARDED** (issue #68, PR pending)
 `restore_pass.lua:87`. The only Blizzard usage is Classic (Mists) code; globals aren't in
 the generated API docs so this is unverifiable offline. RestorePetBar has no pcall — if the
-global is gone, pet restore throws and the final "Bars restored." never prints. Verify
-in-game (`/dump PickupPetSpell`); if absent, pick the spell up via
-`C_SpellBook.PickupSpellBookItem(..., Enum.SpellBookSpellBank.Pet)`.
+global is gone, pet restore throws and the final "Bars restored." never prints. **Fixed:** the
+`spell` branch is now gated on `PickupPetSpell` existing (`elseif p.type == "spell" and
+PickupPetSpell then`), so pet-bar restore never errors when it's absent — the spell slot is
+simply skipped. (Still worth confirming in-game whether the global is present, to decide if a
+positive `C_SpellBook.PickupSpellBookItem(..., Pet)` fallback is warranted; the guard makes that
+optional rather than crash-critical.)
 
 ## Design gaps — new
 
