@@ -94,7 +94,11 @@ function ns.RestorePetBar(petslots, clearUnused)
         PickupPetAction(from)
         PickupPetAction(p.id)
       end
-    elseif p.type == "spell" then
+    elseif p.type == "spell" and PickupPetSpell then
+      -- PickupPetSpell is not present on every client; guard it so pet-bar restore
+      -- never errors when it's absent (the spell slot is simply skipped). Both calls
+      -- are gated together so PickupPetAction can't pick up the existing slot action
+      -- with an empty cursor (issue #68 / B9).
       PickupPetSpell(p.index)
       PickupPetAction(p.id)
     end
