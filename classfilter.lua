@@ -3,10 +3,11 @@ local ui = ns.ui
 
 local ROW_H = 22
 
--- Down-caret suffix on the trigger label. Unicode ▼ renders in the default
--- WoW fonts and reads as a dropdown arrow; swap to an inline atlas here if a
--- more native look is wanted (single point of change).
-local ARROW = " |cff808080▼|r"
+-- Down-caret suffix on the trigger label. FRIZQT has no ▼ glyph (renders as
+-- tofu), so use Blizzard's dropdown arrow atlas inline. The "-up" suffix is
+-- the toggle button's released state, not the arrow direction — it points
+-- down. Single point of change if a different atlas is wanted.
+local ARROW = " " .. CreateAtlasMarkup("auctionhouse-ui-dropdown-arrow-up")
 
 local CLASSES = {
   { key = nil,           label = "All Classes"  },
