@@ -68,6 +68,8 @@ ns.PickupProfessionSpell(ordinal, slot, name) -- puts spell on cursor
 ns.Print(msg)                         -- addon-prefixed chat print (from LibNAddOn)
 ns.delay(ms, fn)                      -- one-shot timer (overwrites any pending)
 ns:Open()                             -- show the main window
+ns:ToggleMainWindow()                 -- bare-command toggle: hide if open, else Open()
+ns:HideMainWindow()                   -- hide the main window if it exists
 ns.db                                 -- live ref to ActionBarMasterDB
 ```
 
@@ -220,9 +222,9 @@ Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used a
 
 | Command | Action |
 |---|---|
-| `/bars`, `/wbars` | Open the main window |
+| `/bars`, `/wbars` | Toggle the main window (closes it if already open) |
 | `/bars sn` | Autosave now |
-| `/bars dupes` | Scan all profiles for duplicate slots; Ignore button per finding |
+| `/bars dupes` | Toggle the duplicate-scan window (closes it if already open); Ignore button per finding |
 | `/bars debug flyouts` | Dump flyout spellbook and bar-slot state |
 | `/bars debug flyoutrestore` | Test `PickupSpellBookItem` for each flyout, show cursor state |
 | `/bars debug capture` | Show flyout entries from a live `Capture()` |
