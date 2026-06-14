@@ -1,8 +1,19 @@
 local _, ns = ...
 
+local GetSpellName = C_Spell and C_Spell.GetSpellName
+                  or function(id) return (GetSpellInfo(id)) end
+
 local function spellTex(id)
   if C_Spell and C_Spell.GetSpellTexture then return C_Spell.GetSpellTexture(id) end
   return GetSpellTexture(id)
+end
+
+-- Battle-pet name for a stored pet GUID, or nil if it no longer resolves
+-- (pet caged/released since capture).
+local function petName(petID)
+  if not (C_PetJournal and petID) then return end
+  local _, customName, _, _, _, _, _, name = C_PetJournal.GetPetInfoByPetID(petID)
+  return customName or name
 end
 
 local function profSpellID(entry)
@@ -87,6 +98,10 @@ local function getIcon(entry, macros)
     local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
     local info    = outfits and outfits[entry.index]
     return info and info.icon
+  elseif t == "summonpet" then
+    if C_PetJournal and entry.strindex then
+      return select(9, C_PetJournal.GetPetInfoByPetID(entry.strindex))
+    end
   end
 end
 
@@ -102,7 +117,10 @@ local function addTooltip(btn, entry, macros)
     GameTooltip:SetOwner(btn._widget, "ANCHOR_TOPRIGHT", -2, 0)
     local t = entry.type
     if t == "spell" then
-      GameTooltip:SetSpellByID(entry.index)
+      -- guard invalid IDs (a captured spell whose ID churned out of existence):
+      -- SetSpellByID on an unknown ID leaves the tooltip blank/erroring
+      if GetSpellName(entry.index) then GameTooltip:SetSpellByID(entry.index)
+      else GameTooltip:AddLine("Unknown spell #" .. tostring(entry.index), 1, 1, 1) end
     elseif t == "racial" then
       local sid = racialSpellID(entry.index)
       if sid then GameTooltip:SetSpellByID(sid)
@@ -126,7 +144,10 @@ local function addTooltip(btn, entry, macros)
       local _, spellID = C_MountJournal.GetMountInfoByID(entry.index)
       if spellID then GameTooltip:SetSpellByID(spellID) end
     elseif t == "companion" then
-      GameTooltip:SetSpellByID(entry.index)
+      if GetSpellName(entry.index) then GameTooltip:SetSpellByID(entry.index)
+      else GameTooltip:AddLine("Companion #" .. tostring(entry.index), 1, 1, 1) end
+    elseif t == "summonpet" then
+      GameTooltip:AddLine(petName(entry.strindex) or "Battle pet (not in collection)", 1, 1, 1)
     elseif t == "equipmentset" then
       local ids   = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
       local setID = ids and ids[entry.index]
