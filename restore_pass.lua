@@ -71,10 +71,12 @@ function ns.RestoreBindings(binds)
 end
 
 ---Restore pet bar slots from a profile's petslots array.
----@param petslots    table
----@param clearUnused boolean?  blank pet slots absent from the profile (only when
----                             the pet bar is actually in scope — see ns.Restore)
-function ns.RestorePetBar(petslots, clearUnused)
+---Pet-bar restore is merge-only by design: it places the profile's pet slots but does
+---NOT clear slots absent from the profile. Most pet-bar buttons are the pet's intrinsic
+---tokens (attack/follow/stances + the pet's own abilities), so blanking "unused" slots
+---risks stripping a different pet's built-in actions (gap #7 deliberately skipped).
+---@param petslots table
+function ns.RestorePetBar(petslots)
   if not IsPetActive() then return end
 
   -- Re-scan the token slots for each placement: placing a token swaps the two
@@ -103,20 +105,6 @@ function ns.RestorePetBar(petslots, clearUnused)
       PickupPetAction(p.id)
     end
     ClearCursor()
-  end
-
-  -- Mirror the main bars (ClearUnusedSlots): blank pet slots not in the profile
-  -- rather than leaving stragglers (gap #7). Skipped when the pet bar is out of
-  -- scope, where petslots is empty but the bar must be left untouched.
-  if clearUnused then
-    local used = {}
-    for _, p in ipairs(petslots) do used[p.id] = true end
-    for i = 1, NUM_PET_ACTION_SLOTS do
-      if not used[i] then
-        PickupPetAction(i)
-        ClearCursor()
-      end
-    end
   end
 end
 

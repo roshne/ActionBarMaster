@@ -45,12 +45,13 @@ blocked → the wrong (temp) index is captured silently.
 Fix: skip resolution (or bail out of the swap) when `GetCursorInfo()` is non-nil, and
 skip/defer autosave while `InCombatLockdown()`.
 
-### B4. Pet-bar token restore uses a stale slot map across swaps
+### B4. Pet-bar token restore uses a stale slot map across swaps — **FIXED** (issue #66, PR #85)
 `restore_pass.lua:75-92`. `tokens[name] = slot` is snapshotted once; each
 `PickupPetAction(src); PickupPetAction(dst)` swap moves the displaced token to `src`
 without updating the map, so restoring multiple moved tokens places later ones from wrong
 slots. Also the `ClearCursor()` after each swap discards whatever was displaced.
-Fix: re-scan the token map after each swap (or process as a permutation).
+**Fixed:** `tokenSlot(name)` re-scans the live slot per placement. (PR #85 also folds in the
+#68 `PickupPetSpell` guard.) **Needs in-game verification** of multi-token reorder.
 
 ### B5. `/bars debug flyoutplace` destroys the previous slot-180 action despite claiming to restore it
 `debug.lua:227-247`. `PlaceAction(TEST_SLOT)` over an occupied slot swaps the old action
@@ -112,12 +113,13 @@ selection the same way.
 for an odd spellbook entry, `map[nil] = ...` throws "table index is nil" — Capture errors
 (and autosave re-errors every retry). One-line hardening: `if ovr and ovr ~= spellId`.
 
-### B9. Verify `PickupPetSpell` still exists in retail
+### B9. Verify `PickupPetSpell` still exists in retail — **GUARDED** (issue #68, folded into PR #85)
 `restore_pass.lua:87`. The only Blizzard usage is Classic (Mists) code; globals aren't in
 the generated API docs so this is unverifiable offline. RestorePetBar has no pcall — if the
-global is gone, pet restore throws and the final "Bars restored." never prints. Verify
-in-game (`/dump PickupPetSpell`); if absent, pick the spell up via
-`C_SpellBook.PickupSpellBookItem(..., Enum.SpellBookSpellBank.Pet)`.
+global is gone, pet restore throws and the final "Bars restored." never prints. **Fixed:** the
+spell branch is gated on `PickupPetSpell` existing, so restore can't crash if it's absent (the
+slot is skipped). In-game confirm still worthwhile to decide on a positive
+`C_SpellBook.PickupSpellBookItem(..., Pet)` fallback.
 
 ## Design gaps — new
 
@@ -165,7 +167,10 @@ adaptive assisted-combat button. May be intentional; document or restore the rea
 - #5 RestoreBindings is merge-only (never unbinds; restored command can also keep extra
   pre-existing keys).
 - #6 Equipment sets / outfits stored by list position, not identity.
-- #7 Pet bar is merge-only (never clears).
+- #7 Pet bar is merge-only (never clears). **WON'T FIX (decision 2026-06-14):** pet-bar
+  clearing is deliberately skipped — most pet-bar buttons are the pet's intrinsic tokens, so
+  blanking "unused" slots risks stripping a different pet's built-in actions. RestorePetBar stays
+  merge-only (places profile slots, clears nothing).
 - #8 Manual save appends to end vs autosave inserts at 1; duplicate names silently allowed.
 - Minor: base64 `pairs`→`ipairs`; `ns.delay` single-timer hazard comment in autosave;
   int24 spell-ID ceiling (~16.7 M; Harronir racial is already 1,237,885); `" v"` literal
