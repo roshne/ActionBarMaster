@@ -229,6 +229,7 @@ Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used a
 | Command | Action |
 |---|---|
 | `/bars`, `/wbars` | Toggle the main window (closes it if already open) |
+| `/bars resetpos` | Recenter the window to its default position (recovery if a resolution/scale change orphaned it off-screen) |
 | `/bars sn` | Autosave now |
 | `/bars dupes` | Toggle the duplicate-scan window (closes it if already open); Ignore button per finding |
 | `/bars debug flyouts` | Dump flyout spellbook and bar-slot state |

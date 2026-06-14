@@ -11,6 +11,10 @@ local BTN_H    = 22
 
 local window = nil
 
+-- default position: centered on UIParent with this offset (matches the
+-- `Center` anchor in CreateWindow); reused by /bars resetpos
+local DEFAULT_X, DEFAULT_Y = -75, 150
+
 local function savePosition(f)
   local x = f._widget:GetLeft() - UIParent:GetLeft()
   local y = f._widget:GetTop()  - UIParent:GetTop()
@@ -19,14 +23,36 @@ local function savePosition(f)
   ns.db.windowPos = { x = x, y = y }
 end
 
+-- Keep a TOPLEFT offset within UIParent. The window is clamped-to-screen so a
+-- drag can't strand it, but a saved position from a LARGER resolution/UI scale
+-- can land off-screen after a shrink — pull it back into bounds on restore.
+local function clampToScreen(x, y)
+  local pw, ph = UIParent:GetWidth(), UIParent:GetHeight()
+  x = math.max(0, math.min(x, math.max(0, pw - WIN_W)))
+  -- y is the TOPLEFT offset from UIParent's top, so it ranges [-(ph-WIN_H), 0]
+  y = math.min(0, math.max(y, -math.max(0, ph - WIN_H)))
+  return x, y
+end
+
 local function restorePosition(f)
   local pos = ns.db.windowPos
   if pos then
+    local x, y = clampToScreen(pos.x, pos.y)
     f._widget:ClearAllPoints()
-    f:TopLeft(UIParent, ui.edge.TopLeft, pos.x, pos.y)
+    f:TopLeft(UIParent, ui.edge.TopLeft, x, y)
+    -- persist the clamped position so the recovery sticks
+    if x ~= pos.x or y ~= pos.y then ns.db.windowPos = { x = x, y = y } end
   else
     savePosition(f)  -- freeze computed center into TOPLEFT anchor on first run
   end
+end
+
+-- Recenter the window to its default spot and persist it (for /bars resetpos —
+-- recovery when a resolution change orphaned the saved position off-screen).
+local function resetPosition(f)
+  f._widget:ClearAllPoints()
+  f:Center(DEFAULT_X, DEFAULT_Y)
+  savePosition(f)
 end
 
 local function CreateWindow()
@@ -293,3 +319,14 @@ function ns:ToggleMainWindow()
 end
 
 ns:registerCommand("", nil, function(self) self:ToggleMainWindow() end, "Toggle Action Bar Master")
+
+-- Recenter the window — recovery if a resolution/UI-scale change left it
+-- off-screen. Clears the saved position when the window isn't built yet so the
+-- next open starts centered.
+ns:registerCommand("resetpos", nil, function()
+  ns.db.windowPos = nil
+  if window then
+    resetPosition(window)
+    window:Show()
+  end
+end, "Reset the window to its default position")
