@@ -61,23 +61,60 @@ function ns.BuildSaveDialog(parent, onSaved)
     },
   }
 
-  DoSave = function()
-    local name = nameBox:Text()
-    if name == "" then return end
+  -- Commit a capture under `name`. `existing` (a profile entry) is overwritten
+  -- in place — keeping its list position and identity (so a live selection
+  -- stays valid, cf. #65); otherwise a new entry is FRONT-inserted at index 1,
+  -- matching autosave's ordering and the "index 1 = most recent" convention.
+  local function commitSave(name, existing)
     local profile = ns.Capture(parent._barsGrid.GetChecked())
     local encoded = ns.Encode(profile)
-    table.insert(ns.db.profiles, {
-      name    = name,
-      char    = profile.char,
-      -- partial captures blank class/spec; store nil so the list treats the
-      -- entry as shared (visible to every class, [s] tag)
-      class   = profile.class ~= "" and profile.class or nil,
-      spec    = profile.spec  ~= "" and profile.spec  or nil,
-      encoded = encoded,
-    })
+    -- partial captures blank class/spec; store nil so the list treats the
+    -- entry as shared (visible to every class, [s] tag)
+    local class = profile.class ~= "" and profile.class or nil
+    local spec  = profile.spec  ~= "" and profile.spec  or nil
+    if existing then
+      existing.name, existing.char, existing.class, existing.spec, existing.encoded =
+        name, profile.char, class, spec, encoded
+    else
+      table.insert(ns.db.profiles, 1, {
+        name = name, char = profile.char, class = class, spec = spec, encoded = encoded,
+      })
+    end
     onSaved()
     dlg:Hide()
   end
+
+  DoSave = function()
+    local name = nameBox:Text()
+    if name == "" then return end
+    -- Saving into an existing (non-autosave) name overwrites that profile
+    -- rather than silently duplicating it. Autosave entries are managed
+    -- separately (keyed by char+spec) and are left alone here.
+    local existing
+    for _, p in ipairs(ns.db.profiles) do
+      if not p.autosave and p.name == name then existing = p; break end
+    end
+    if existing then
+      dlg._pendingName, dlg._pendingExisting = name, existing
+      StaticPopup_Show("ABM_CONFIRM_OVERWRITE", name)
+    else
+      commitSave(name, nil)
+    end
+  end
+
+  StaticPopupDialogs["ABM_CONFIRM_OVERWRITE"] = {
+    text = "Overwrite profile '%s'?", button1 = YES, button2 = NO,
+    timeout = 0, whileDead = 1, hideOnEscape = 1,
+    -- _pendingExisting holds the entry REFERENCE, so an autosave shifting
+    -- indices during the confirm can't redirect the overwrite (cf. #65)
+    OnAccept = function()
+      commitSave(dlg._pendingName, dlg._pendingExisting)
+      dlg._pendingName, dlg._pendingExisting = nil, nil
+    end,
+    OnCancel = function()
+      dlg._pendingName, dlg._pendingExisting = nil, nil
+    end,
+  }
 
   local okBtn = ui.Button:new{
     parent = dlg, template = "UIPanelButtonTemplate", glow = false,
