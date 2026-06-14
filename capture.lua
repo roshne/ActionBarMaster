@@ -49,9 +49,8 @@ local function CaptureSlots(overrides, includeOutfits, racialSet, profSpellMap, 
       slotType = nil  -- bar excluded from this capture
     end
     if slotType and slotType ~= "" then
-      if slotType == "outfit" and not includeOutfits then
-        -- skip
-      else
+      -- skip outfit slots when includeOutfits is false; capture everything else
+      if not (slotType == "outfit" and not includeOutfits) then
         local entry = { id = i, type = slotType }
         if slotType == "spell" then
           if subType == "assistedcombat" then

@@ -244,3 +244,16 @@ Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used a
 |---|---|
 | `ABM_CONFIRM_DELETE` | Confirm profile deletion |
 | `ABM_CONFIRM_IMPORT` | Confirm restore from Import or Load |
+| `ABM_CONFIRM_OVERWRITE` | Confirm overwriting an existing (non-autosave) profile name on Save |
+
+---
+
+## Tests & CI
+
+WoW-API-free modules have [busted](https://lunarmodules.github.io/busted/) specs in `spec/`; everything touching `C_*`/frames stays in-game-tested (`/reload`).
+
+- **Covered:** `libs/base64.lua`, `libs/crc32.lua`, `serialize.lua` (Encode/Decode round-trip, partial-profile v3, CRC tamper detection).
+- **Loader:** `spec/abm.lua` `load()` loads those files into a fresh `ns` with the `(addonName, ns)` vararg, stubbing a pure-Lua **variadic** `bit` library (matches WoW's 4-arg `bor` that `Decode` relies on) and `IsWindowsClient`. No `luabitop` rock needed.
+- **Run:** `busted` from the repo root (config in `.busted`, `ROOT = {"spec"}`). Spec files are never listed in the `.toc`, so WoW never loads them; save them **without a UTF-8 BOM** (Lua 5.1 `loadfile` rejects it).
+- **Lint:** `luacheck . --codes` (config in `.luacheckrc`; WoW globals as `read_globals`, `spec/**` gets `+busted` std). Repo lints clean — keep it that way.
+- **CI:** `.github/workflows/test.yml` runs busted + luacheck on Lua 5.1.5 for every push to `main` and every PR.

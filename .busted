@@ -1,0 +1,12 @@
+return {
+  default = {
+    -- Spec dir lives at the repo root. Specs cover only the WoW-API-free
+    -- modules (serialize / base64 / crc32); everything touching C_* or frames
+    -- stays in-game-tested.
+    ROOT = {
+      "spec",
+    },
+    lpath = "?.lua",
+    verbose = true,
+  },
+}
