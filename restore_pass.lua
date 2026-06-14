@@ -74,15 +74,27 @@ end
 ---@param petslots table
 function ns.RestorePetBar(petslots)
   if not IsPetActive() then return end
-  local tokens = {}
-  for i = 1, NUM_PET_ACTION_SLOTS do
-    local name, _, isToken = GetPetActionInfo(i)
-    if isToken then tokens[name] = i end
+
+  -- Find a token's CURRENT slot by name. Token positions shift as we swap them into
+  -- place, so re-scan per token rather than trusting a one-time snapshot — a stale
+  -- snapshot moved later tokens from the wrong slots (B4).
+  local function tokenSlot(name)
+    for i = 1, NUM_PET_ACTION_SLOTS do
+      local n, _, isToken = GetPetActionInfo(i)
+      if isToken and n == name then return i end
+    end
   end
+
+  local used = {}
+  for _, p in ipairs(petslots) do used[p.id] = true end
+
   for _, p in ipairs(petslots) do
-    if p.type == "token" and tokens[p.strindex] then
-      PickupPetAction(tokens[p.strindex])
-      PickupPetAction(p.id)
+    if p.type == "token" then
+      local src = tokenSlot(p.strindex)
+      if src then
+        PickupPetAction(src)
+        PickupPetAction(p.id)
+      end
     elseif p.type == "spell" and PickupPetSpell then
       -- PickupPetSpell is not present on every client; guard it so pet-bar restore
       -- never errors when it's absent (the spell slot is simply left as-is). Both
@@ -92,6 +104,19 @@ function ns.RestorePetBar(petslots)
       PickupPetAction(p.id)
     end
     ClearCursor()
+  end
+
+  -- Clear pet slots not present in the profile, mirroring ClearUnusedSlots for the
+  -- main bars (gap #7) — but only when the profile actually carries pet data. An empty
+  -- petslots means "no pet captured" (or the pet bar was filtered out, in which case
+  -- restore.lua passes {}), not "blank the pet bar", so leave it untouched then.
+  if #petslots > 0 then
+    for i = 1, NUM_PET_ACTION_SLOTS do
+      if not used[i] and GetPetActionInfo(i) then
+        PickupPetAction(i)
+        ClearCursor()
+      end
+    end
   end
 end
 

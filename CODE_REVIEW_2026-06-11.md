@@ -45,12 +45,14 @@ blocked → the wrong (temp) index is captured silently.
 Fix: skip resolution (or bail out of the swap) when `GetCursorInfo()` is non-nil, and
 skip/defer autosave while `InCombatLockdown()`.
 
-### B4. Pet-bar token restore uses a stale slot map across swaps
+### B4. Pet-bar token restore uses a stale slot map across swaps — **FIXED** (issue #66, PR pending)
 `restore_pass.lua:75-92`. `tokens[name] = slot` is snapshotted once; each
 `PickupPetAction(src); PickupPetAction(dst)` swap moves the displaced token to `src`
 without updating the map, so restoring multiple moved tokens places later ones from wrong
 slots. Also the `ClearCursor()` after each swap discards whatever was displaced.
-Fix: re-scan the token map after each swap (or process as a permutation).
+**Fixed:** token positions are re-scanned per token (`tokenSlot(name)` finds the live slot)
+instead of a one-time snapshot, so swaps resolve correctly. Bundled with gap #7 (pet-bar
+clearing). **Needs in-game verification** (pet-bar swap/clear mechanics).
 
 ### B5. `/bars debug flyoutplace` destroys the previous slot-180 action despite claiming to restore it
 `debug.lua:227-247`. `PlaceAction(TEST_SLOT)` over an occupied slot swaps the old action
@@ -168,7 +170,10 @@ adaptive assisted-combat button. May be intentional; document or restore the rea
 - #5 RestoreBindings is merge-only (never unbinds; restored command can also keep extra
   pre-existing keys).
 - #6 Equipment sets / outfits stored by list position, not identity.
-- #7 Pet bar is merge-only (never clears).
+- #7 Pet bar is merge-only (never clears). **RESOLVED (issue #66, PR pending):** `RestorePetBar`
+  now clears pet slots absent from the profile (mirrors `ClearUnusedSlots`), only when the profile
+  carries pet data (`#petslots > 0`) so an empty/pet-filtered profile leaves the pet bar alone —
+  honoring `barFilter.pet` via the existing `petslots = {}` path in restore.lua. Needs in-game test.
 - #8 Manual save appends to end vs autosave inserts at 1; duplicate names silently allowed.
 - Minor: base64 `pairs`→`ipairs`; `ns.delay` single-timer hazard comment in autosave;
   int24 spell-ID ceiling (~16.7 M; Harronir racial is already 1,237,885); `" v"` literal

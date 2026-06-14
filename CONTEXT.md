@@ -171,7 +171,7 @@ profile = {
 3. **`RestoreSlots`** — everything else per slot type (each slot wrapped in `pcall`; content that isn't available on this character blanks the slot). Equipment sets and outfits resolve by **name** first (`strindex` identity), falling back to the stored list position for pre-identity profiles. Unresolvable slots are collected as "misses" (not printed individually) and flushed as a **single summary line** at the end of `ns.Restore` — async item-info lookups (`GET_ITEM_INFO_RECEIVED`) defer the flush until the last one resolves (`pendingItems` counter). True per-slot errors and the flyout "drag from spellbook" instruction still print immediately via `Warn`.
 4. **`ClearUnusedSlots`** — blank action slots not present in the profile (respects `barFilter`).
 5. **`RestoreBindings`** — `SetBinding` + `SaveBindings`. Merge-only: keys absent from the profile are not unbound.
-6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet, never clears unused pet slots.
+6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet. Token positions are re-scanned per token (positions shift during swaps), and pet slots absent from the profile are cleared (mirrors `ClearUnusedSlots`) — only when the profile carries pet data (`#petslots > 0`), so an empty/pet-filtered profile leaves the pet bar untouched.
 
 `barFilter` (`{ [barNum|"pet"] = bool }`, from the grid checkboxes via `GetChecked()`): entries set to `false` are skipped by slot restore and unused-slot clearing.
 
