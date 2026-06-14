@@ -272,4 +272,13 @@ function ns:HideMainWindow()
   if window then window:Hide() end
 end
 
-ns:registerCommand("", nil, function(self) self:Open() end, "Open Action Bar Master")
+-- Toggle convention: re-running the bare command on an open window closes it.
+function ns:ToggleMainWindow()
+  if window and window._widget:IsShown() then
+    window:Hide()
+  else
+    self:Open()
+  end
+end
+
+ns:registerCommand("", nil, function(self) self:ToggleMainWindow() end, "Toggle Action Bar Master")
