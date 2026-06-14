@@ -183,7 +183,11 @@ local function CreateWindow()
     {
       label = "Export", x = RX[1],
       fn = function()
-        local encoded = ns.Encode(ns.Capture())
+        -- export the selected saved profile's own string (the only way to
+        -- share another character's profile); fall back to a live capture of
+        -- the current bars when nothing is selected
+        local p = getSelected()
+        local encoded = (p and p.encoded) or ns.Encode(ns.Capture())
         expDlg._box:Text(encoded)
         expDlg._box._widget:HighlightText(0, -1)
         expDlg:Show()
