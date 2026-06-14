@@ -89,6 +89,9 @@ local function CaptureSlots(overrides, includeOutfits, racialSet, profSpellMap, 
         elseif slotType == "summonpet" then
           entry.strindex = index  -- GUID string
         elseif slotType == "equipmentset" then
+          -- GetActionInfo returns the set NAME for equipmentset slots; store it
+          -- as the identity (strindex) and keep list position as a fallback.
+          entry.strindex = index
           local setIDs = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
           for pos, setID in ipairs(setIDs or {}) do
             if C_EquipmentSet.GetEquipmentSetInfo(setID) == index then
@@ -97,10 +100,12 @@ local function CaptureSlots(overrides, includeOutfits, racialSet, profSpellMap, 
             end
           end
         elseif slotType == "outfit" then
+          -- store outfit NAME as identity (strindex), list position as fallback
           local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
           for pos, info in ipairs(outfits or {}) do
             if info.outfitID == index then
-              entry.index = pos
+              entry.index    = pos
+              entry.strindex = info.name
               break
             end
           end

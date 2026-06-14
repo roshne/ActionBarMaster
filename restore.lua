@@ -49,6 +49,27 @@ local function Warn(msg)
   ns.Print("|cffff9900[Bars]|r " .. msg)
 end
 
+-- A "miss" is a slot whose content simply isn't available on this character
+-- (an unowned item, a missing equipment set/outfit, an unlearned profession,
+-- etc.) — expected on cross-character restores. Rather than print one chat
+-- line per miss (which floods the log), they are collected and flushed as a
+-- single summary at the end of the restore. True errors still use Warn.
+local misses = {}
+local restoreFinished = false
+local pendingItems = 0  -- async item-info lookups still outstanding
+
+local function Miss(msg)
+  misses[#misses + 1] = msg
+end
+
+local function FlushMisses()
+  if #misses == 0 then return end
+  Warn(#misses .. (#misses == 1 and " slot was" or " slots were")
+    .. " left blank — content not available on this character:")
+  ns.Print("|cffff9900[Bars]|r " .. table.concat(misses, ",  "))
+  wipe(misses)
+end
+
 local pendingItemWarns = {}
 
 ns:registerEvent("GET_ITEM_INFO_RECEIVED", function(self, itemID, success)
@@ -57,7 +78,9 @@ ns:registerEvent("GET_ITEM_INFO_RECEIVED", function(self, itemID, success)
     pendingItemWarns[itemID] = nil
     local link = success and select(2, GetItemInfo(itemID))
                or ("|Hitem:" .. itemID .. "|h[item:" .. itemID .. "]|h")
-    Warn(tag .. "Missing item " .. link)
+    Miss(tag .. "Missing item " .. link)
+    pendingItems = pendingItems - 1
+    if restoreFinished and pendingItems == 0 then FlushMisses() end
   end
 end)
 
@@ -166,9 +189,10 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           if link then
             local isToy  = C_ToyBox and C_ToyBox.GetToyInfo(s.index)
             local suffix = (isToy and not PlayerHasToy(s.index)) and " (not in Toy Box)" or ""
-            Warn(slot .. "Missing item " .. link .. suffix)
+            Miss(slot .. "Missing item " .. link .. suffix)
           else
             pendingItemWarns[s.index] = slot
+            pendingItems = pendingItems + 1
             C_Item.RequestLoadItemDataByID(s.index)
           end
         end
@@ -195,7 +219,7 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           end
         end
         if not GetCursorInfo() then
-          Warn(slot .. "Missing racial #" .. s.index .. " for " .. (race or "?"))
+          Miss(slot .. "Missing racial #" .. s.index .. " for " .. (race or "?"))
         end
       elseif s.type == "profession" then
         ns.PickupProfessionSpell(s.index, s.profSlot, s.strindex)
@@ -203,7 +227,7 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
           local what = s.strindex and ("[" .. s.strindex .. "]") or ("profession spell #" .. s.index)
           local why  = (GetProfessions and not select(s.index, GetProfessions()))
             and "profession not learned" or "spell not found"
-          Warn(slot .. "skipped " .. what .. " — " .. why)
+          Miss(slot .. "skipped " .. what .. " — " .. why)
         end
       elseif s.type == "macro" then
         -- handled in RestoreMacros pass; skip here
@@ -211,7 +235,7 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
       elseif s.type == "summonpet" then
         C_PetJournal.PickupPet(s.strindex, false)
         if not GetCursorInfo() then C_PetJournal.PickupPet(s.strindex, true) end
-        if not GetCursorInfo() then Warn(slot .. "Missing pet [" .. tostring(s.strindex) .. "]") end
+        if not GetCursorInfo() then Miss(slot .. "Missing pet [" .. tostring(s.strindex) .. "]") end
       elseif s.type == "summonmount" then
         local mi
         if C_MountJournal then
@@ -225,21 +249,44 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         -- legacy pre-journal mount/mini-pet action; index is the summon spell ID
         PickupSpell(s.index)
         if not GetCursorInfo() then
-          Warn(slot .. "Missing companion " .. (GetSpellLink(s.index) or ("spell " .. s.index)))
+          Miss(slot .. "Missing companion " .. (GetSpellLink(s.index) or ("spell " .. s.index)))
         end
       elseif s.type == "equipmentset" then
         if C_EquipmentSet then
-          local setIDs = C_EquipmentSet.GetEquipmentSetIDs()
-          local setID  = setIDs and setIDs[s.index]
+          local setIDs = C_EquipmentSet.GetEquipmentSetIDs() or {}
+          -- resolve by name first (identity), fall back to stored list position
+          local setID
+          if s.strindex then
+            for _, id in ipairs(setIDs) do
+              if C_EquipmentSet.GetEquipmentSetInfo(id) == s.strindex then setID = id; break end
+            end
+          end
+          setID = setID or (s.index and setIDs[s.index])
           if setID then C_EquipmentSet.PickupEquipmentSet(setID) end
-          if not GetCursorInfo() then Warn(slot .. "Missing equipment set #" .. tostring(s.index)) end
+          if not GetCursorInfo() then
+            Miss(slot .. "Missing equipment set "
+              .. (s.strindex and ('[' .. s.strindex .. ']') or ('#' .. tostring(s.index))))
+          end
         end
       elseif s.type == "outfit" then
         if C_TransmogOutfitInfo then
-          local outfits = C_TransmogOutfitInfo.GetOutfitsInfo()
-          local info    = outfits and outfits[s.index]
-          if info then C_TransmogOutfitInfo.PickupOutfit(info.outfitID) end
-          if not GetCursorInfo() then Warn(slot .. "Missing outfit #" .. tostring(s.index)) end
+          local outfits = C_TransmogOutfitInfo.GetOutfitsInfo() or {}
+          -- resolve by name first (identity), fall back to stored list position
+          local outfitID
+          if s.strindex then
+            for _, info in ipairs(outfits) do
+              if info.name == s.strindex then outfitID = info.outfitID; break end
+            end
+          end
+          if not outfitID and s.index then
+            local info = outfits[s.index]
+            outfitID = info and info.outfitID
+          end
+          if outfitID then C_TransmogOutfitInfo.PickupOutfit(outfitID) end
+          if not GetCursorInfo() then
+            Miss(slot .. "Missing outfit "
+              .. (s.strindex and ('[' .. s.strindex .. ']') or ('#' .. tostring(s.index))))
+          end
         end
       elseif s.type == "petaction" or s.type == "futurespell" then
         PickupAction(s.id) -- clear
@@ -265,6 +312,10 @@ function ns.Restore(profile, barFilter)
     ns.Print("Cannot restore during combat.")
     return
   end
+  wipe(misses)
+  restoreFinished = false
+  pendingItems    = 0
+
   local overrides, flyouts = BuildSpellbookMaps()
   local _, race   = UnitRace("player")
   local _, class  = UnitClass("player")
@@ -307,4 +358,9 @@ function ns.Restore(profile, barFilter)
   end
   ns.RestorePetBar(petslots)
   ns.Print("Bars restored.")
+
+  -- flush the collected misses as one summary; if item-info lookups are still
+  -- pending, the GET_ITEM_INFO_RECEIVED handler flushes once the last resolves
+  restoreFinished = true
+  if pendingItems == 0 then FlushMisses() end
 end

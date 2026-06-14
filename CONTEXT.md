@@ -117,7 +117,8 @@ profile = {
       id       = int,         -- action bar slot 1–180
       type     = string,      -- see slot types below
       index    = int|nil,     -- spell ID / item ID / macro index / ordinal
-      strindex = string|nil,  -- summonpet GUID, or spell name for profession fallback
+      strindex = string|nil,  -- summonpet GUID; profession spell-name fallback;
+                              -- equipment-set / outfit NAME (identity, see table)
       profSlot = int|nil,     -- profession spellbook slot (type="profession" only)
     }, ...
   },
@@ -143,8 +144,8 @@ profile = {
 | `"flyout"` | flyout ID | — |
 | `"summonpet"` | — | pet GUID |
 | `"summonmount"` | mount ID | — |
-| `"equipmentset"` | position in set ID array | — |
-| `"outfit"` | position in outfit list | — |
+| `"equipmentset"` | position in set ID array (fallback) | set name (identity) |
+| `"outfit"` | position in outfit list (fallback) | outfit name (identity) |
 | `"companion"` | summon spell ID (legacy pre-journal mount/pet action) | — |
 | `"petaction"` / `"futurespell"` | — | — (cleared on restore) |
 
@@ -164,7 +165,7 @@ profile = {
 
 1. **`RestoreFlyouts`** — flyout slots FIRST, before any other pickup/place call. `PickupSpellBookItem` for flyout-type spellbook items silently fails if called after other protected pickup operations in the same hardware event. Do not reorder.
 2. **`RestoreMacrosAndSlots`** — find-or-create each profile macro (matched by name + trimmed body), then place macro slots via the old→new index map.
-3. **`RestoreSlots`** — everything else per slot type (each slot wrapped in `pcall`; missing content warns and blanks the slot).
+3. **`RestoreSlots`** — everything else per slot type (each slot wrapped in `pcall`; content that isn't available on this character blanks the slot). Equipment sets and outfits resolve by **name** first (`strindex` identity), falling back to the stored list position for pre-identity profiles. Unresolvable slots are collected as "misses" (not printed individually) and flushed as a **single summary line** at the end of `ns.Restore` — async item-info lookups (`GET_ITEM_INFO_RECEIVED`) defer the flush until the last one resolves (`pendingItems` counter). True per-slot errors and the flyout "drag from spellbook" instruction still print immediately via `Warn`.
 4. **`ClearUnusedSlots`** — blank action slots not present in the profile (respects `barFilter`).
 5. **`RestoreBindings`** — `SetBinding` + `SaveBindings`. Merge-only: keys absent from the profile are not unbound.
 6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet, never clears unused pet slots.
