@@ -195,9 +195,15 @@ function ns.BuildImportDialog(parent, onImport)
   }
   local box = ui.EditBox:new{
     parent = scroll, multiline = true, template = "",
+    -- grab focus on open so Ctrl+V works immediately. The Height fills the
+    -- scroll viewport: an empty multiline editbox is only one line tall, so
+    -- without it most of the box is dead to clicks and the user can't click in
+    -- to focus it (then can't paste). (issue #81)
+    autoFocus = true,
     fontObj   = GameFontHighlightSmall,
-    position  = { Width = TXTDLG_W - PAD * 2 - 20 },
+    position  = { Width = TXTDLG_W - PAD * 2 - 20, Height = 280 - ROW_H - PAD * 3 - BTN_H },
     OnEscapePressed = function() dlg:Hide() end,
+    OnMouseUp       = function(self) self._widget:SetFocus() end,
   }
   scroll:Child(box)
   dlg._box = box
