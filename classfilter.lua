@@ -3,6 +3,11 @@ local ui = ns.ui
 
 local ROW_H = 22
 
+-- Down-caret suffix on the trigger label. Unicode ▼ renders in the default
+-- WoW fonts and reads as a dropdown arrow; swap to an inline atlas here if a
+-- more native look is wanted (single point of change).
+local ARROW = " |cff808080▼|r"
+
 local CLASSES = {
   { key = nil,           label = "All Classes"  },
   { key = "DEATHKNIGHT", label = "Death Knight" },
@@ -128,7 +133,7 @@ function ns.BuildClassFilter(parent, position, onSelect)
         Height   = ROW_H,
       },
       onClick = function()
-        triggerLabel:Text(EntryText(e) .. " v")
+        triggerLabel:Text(EntryText(e) .. ARROW)
         menu:Hide()
         onSelect(e.key, e.specOnly)
       end,
@@ -145,7 +150,7 @@ function ns.BuildClassFilter(parent, position, onSelect)
   -- All Classes if the player's class has no entry (future class not in CLASSES).
   for _, e in ipairs(entries) do
     if e.specOnly then
-      triggerLabel:Text(EntryText(e) .. " v")
+      triggerLabel:Text(EntryText(e) .. ARROW)
       onSelect(e.key, true)
       break
     end
