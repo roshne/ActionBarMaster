@@ -123,7 +123,13 @@ local function getWindow()
     position = { Center = {}, Width = WIN_W, Height = WIN_H },
   }
   ns.CaptureEscape(f)
-  f:SetScript("OnHide", function() ns:Open() end)
+  -- Closing dupes normally returns to the main window (its parent view).
+  -- A command-toggle close (re-running /bars dupes) sets _toggleClose to
+  -- suppress that reopen so the command toggles the view fully off.
+  f:SetScript("OnHide", function()
+    if f._toggleClose then f._toggleClose = nil; return end
+    ns:Open()
+  end)
 
   -- Header bar sits between the titlebar and the scroll area.
   -- All header controls are parented to hdrBar so z-ordering is predictable.
@@ -364,6 +370,13 @@ local function getWindow()
 end
 
 function ns.OpenDupes()
+  -- Toggle convention: re-running the command on an open dupes window closes
+  -- it (skipping the OnHide main-window reopen so the view toggles fully off).
+  if dupeWindow and dupeWindow._widget:IsShown() then
+    dupeWindow._toggleClose = true
+    dupeWindow:Hide()
+    return
+  end
   ns:HideMainWindow()
   local w = getWindow()
   w._refresh()

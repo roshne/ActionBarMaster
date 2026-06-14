@@ -224,7 +224,7 @@ Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used a
 |---|---|
 | `/bars`, `/wbars` | Toggle the main window (closes it if already open) |
 | `/bars sn` | Autosave now |
-| `/bars dupes` | Scan all profiles for duplicate slots; Ignore button per finding |
+| `/bars dupes` | Toggle the duplicate-scan window (closes it if already open); Ignore button per finding |
 | `/bars debug flyouts` | Dump flyout spellbook and bar-slot state |
 | `/bars debug flyoutrestore` | Test `PickupSpellBookItem` for each flyout, show cursor state |
 | `/bars debug capture` | Show flyout entries from a live `Capture()` |
