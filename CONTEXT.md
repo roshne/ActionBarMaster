@@ -50,7 +50,8 @@ ns.RestoreMacrosAndSlots(macros, slots) -- ensure macros exist, place macro slot
 ns.RestoreBindings(binds)             -- apply + persist key bindings
 ns.RestorePetBar(petslots)            -- apply pet bar (no-op without active pet)
 ns.ClearUnusedSlots(slots, barFilter?) -- blank action slots absent from profile
-ns.BuildProfileList(parent, onSelect) -- → scroll, Refresh(), GetSelected(), SetSelected(i), SetClassFilter(key, specOnly)
+ns.BuildProfileList(parent, onSelect) -- → scroll, Refresh(), GetSelected(), SetSelected(entry), SetClassFilter(key, specOnly)
+                                      -- selection is identity-based: GetSelected/onSelect yield the profile ENTRY (not an index)
 ns.BuildClassFilter(parent, pos, onSelect)  -- class dropdown; calls onSelect(classKey|nil, specOnly)
 ns.BuildBarsGrid(parent)              -- → { Update(profile?), GetChecked(), SetAllChecked(v) } pooled icon grid
 ns.BuildRowDrag(opts)                 -- → { Start(orderIdx, label), Finish(mouseButton) } drag-to-reorder

@@ -24,7 +24,8 @@ local function ProfileLabel(p)
 end
 
 ---Build a scrollable profile list inside `parent`.
----Returns: scroll frame, Refresh(), GetSelected() -> index, SetSelected(index)
+---Returns: scroll frame, Refresh(), GetSelected() -> profile entry, SetSelected(entry)
+---`onSelect` receives the selected profile entry (or nil when cleared).
 function ns.BuildProfileList(parent, onSelect)
   local scroll = ui.ScrollFrame:new{
     parent   = parent,
@@ -62,8 +63,8 @@ function ns.BuildProfileList(parent, onSelect)
         Height  = ROW_H,
       },
       onClick = function()
-        selected = row.index
-        onSelect(row.index)
+        selected = row.profile
+        onSelect(row.profile)
         Refresh()
       end,
     }
@@ -92,7 +93,7 @@ function ns.BuildProfileList(parent, onSelect)
     local spec       = GetSpecialization and GetSpecialization()
     local playerSpec = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
     local n, y = 0, 0
-    for i, p in ipairs(ns.db.profiles) do
+    for _, p in ipairs(ns.db.profiles) do
       -- shared profiles (p.class nil) ignore the class/spec filter entirely
       local classMatch = not classFilter or not p.class or p.class == classFilter
       local specMatch  = not specFilter  or not p.class or p.spec == playerSpec
@@ -100,10 +101,13 @@ function ns.BuildProfileList(parent, onSelect)
         n = n + 1
         local row = acquireRow(n)
         local h = (p.autosave and p.savedAt) and ROW_H * 2 or ROW_H
-        row.index = i
+        -- selection is keyed by the profile entry itself (identity), not its
+        -- list index — an autosave inserting at index 1 mid-session must not
+        -- shift which profile is selected (issue #65)
+        row.profile = p
         row.btn:TopLeft(content, ui.edge.TopLeft, 0, -y)
         row.btn:Height(h)
-        row.name:Text((selected == i and "|cffffd100> |r" or "  ") .. ProfileLabel(p))
+        row.name:Text((selected == p and "|cffffd100> |r" or "  ") .. ProfileLabel(p))
         if p.autosave and p.savedAt then
           row.time:Text("|cff888888  " .. p.savedAt .. "|r")
           row.time:Show()

@@ -65,8 +65,7 @@ local function CreateWindow()
     },
   }
 
-  local function OnSelect(i)
-    local p = ns.db.profiles[i]
+  local function OnSelect(p)
     if not p then f._barsGrid.Update(nil); return end
     local profile, err = ns.Decode(p.encoded or "")
     if err then ns.Print("Decode error: " .. err) end
@@ -163,9 +162,8 @@ local function CreateWindow()
     {
       label = "Load", x = LX[3],
       fn = function()
-        local i = getSelected()
-        if not i then ns.Print("Select a profile first."); return end
-        local p = ns.db.profiles[i]
+        local p = getSelected()
+        if not p then ns.Print("Select a profile first."); return end
         local profile, err = ns.Decode(p.encoded or "")
         if not profile then ns.Print("Load failed: " .. (err or "?")); return end
         f._pendingProfile   = profile
@@ -176,10 +174,10 @@ local function CreateWindow()
     {
       label = "Delete", x = LX[4],
       fn = function()
-        local i = getSelected()
-        if not i then ns.Print("Select a profile first."); return end
-        f._pendingDelete = i
-        StaticPopup_Show("ABM_CONFIRM_DELETE", ns.db.profiles[i].name)
+        local p = getSelected()
+        if not p then ns.Print("Select a profile first."); return end
+        f._pendingDelete = p  -- hold the entry, not its index (issue #65)
+        StaticPopup_Show("ABM_CONFIRM_DELETE", p.name)
       end,
     },
     {
@@ -226,9 +224,18 @@ local function CreateWindow()
     text = "Delete '%s'?", button1 = DELETE, button2 = CANCEL,
     timeout = 0, whileDead = 1, hideOnEscape = 1,
     OnAccept = function(self)
-      local i = f._pendingDelete
-      if i and ns.db.profiles[i] then
-        table.remove(ns.db.profiles, i)
+      -- resolve the entry's CURRENT index at accept time: an autosave inserting
+      -- at index 1 during the confirm would otherwise shift a cached index onto
+      -- the wrong profile. If it's gone (e.g. replaced in place by autosave),
+      -- delete nothing rather than guess.
+      local target = f._pendingDelete
+      if target then
+        for idx, p in ipairs(ns.db.profiles) do
+          if p == target then
+            table.remove(ns.db.profiles, idx)
+            break
+          end
+        end
         setSelected(nil)
         refreshList()
         f._barsGrid.Update(nil)
