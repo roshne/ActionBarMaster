@@ -170,7 +170,7 @@ profile = {
 2. **`RestoreMacrosAndSlots`** — find-or-create each profile macro (matched by name + trimmed body), then place macro slots via the old→new index map.
 3. **`RestoreSlots`** — everything else per slot type (each slot wrapped in `pcall`; content that isn't available on this character blanks the slot). Equipment sets and outfits resolve by **name** first (`strindex` identity), falling back to the stored list position for pre-identity profiles. Unresolvable slots are collected as "misses" (not printed individually) and flushed as a **single summary line** at the end of `ns.Restore` — async item-info lookups (`GET_ITEM_INFO_RECEIVED`) defer the flush until the last one resolves (`pendingItems` counter). True per-slot errors and the flyout "drag from spellbook" instruction still print immediately via `Warn`.
 4. **`ClearUnusedSlots`** — blank action slots not present in the profile (respects `barFilter`).
-5. **`RestoreBindings`** — `SetBinding` + `SaveBindings`. Merge-only: keys absent from the profile are not unbound.
+5. **`RestoreBindings`** — clear-then-apply: clears the character's current key bindings, then applies the profile's + `SaveBindings`, so the key map mirrors the profile exactly (consistent with `ClearUnusedSlots` for action slots). Only runs for full profiles — partial/shared profiles carry no binds.
 6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet, never clears unused pet slots.
 
 `barFilter` (`{ [barNum|"pet"] = bool }`, from the grid checkboxes via `GetChecked()`): entries set to `false` are skipped by slot restore and unused-slot clearing.
