@@ -58,7 +58,7 @@ ns.BuildRowDrag(opts)                 -- → { Start(orderIdx, label), Finish(mo
 ns.GetActiveBarOrder()                -- → ordered { abm, label } defs from db.barOrder
 ns.GetBarLabel(abm)                   -- → UI display label for an abm bar number (5 -> "Bar 3")
 ns.BuildSaveDialog(parent, onSaved)   -- → dialog (._nameBox); Save Profile modal
-ns.BuildExportDialog(parent)          -- → dialog (._box); read-only encoded text
+ns.BuildExportDialog(parent)          -- → dialog (._box); read-only encoded text. Export button shows the SELECTED profile's stored .encoded (shareable as-is), or a live ns.Encode(ns.Capture()) when nothing is selected
 ns.BuildImportDialog(parent, onImport) -- → dialog (._box); decodes paste, calls onImport(profile)
 ns.GetRacialSpells(race, class)       -- → ordered array of spell IDs
 ns.GetRacialSpellSet(race, class)     -- → { [spellID] = ordinal }
