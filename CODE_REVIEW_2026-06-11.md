@@ -165,7 +165,11 @@ adaptive assisted-combat button. May be intentional; document or restore the rea
 ## Carry-over open items (from 2026-06-09 review)
 
 - #5 RestoreBindings is merge-only (never unbinds; restored command can also keep extra
-  pre-existing keys).
+  pre-existing keys). **RESOLVED (issue #69, PR pending): clear-then-apply** — clears the
+  character's current bindings, then applies the profile's, so the key map mirrors the profile
+  (consistent with ClearUnusedSlots). Only runs for full profiles (partials carry no binds), and
+  capture stores the full binding set, so nothing the source had is lost. Needs an in-game smoke
+  test (load a profile, confirm strays cleared + profile binds applied).
 - #6 Equipment sets / outfits stored by list position, not identity.
 - #7 Pet bar is merge-only (never clears). **WON'T FIX (decision 2026-06-14):** pet-bar
   clearing is deliberately skipped — most pet-bar buttons are the pet's intrinsic tokens, so
