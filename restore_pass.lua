@@ -71,19 +71,36 @@ function ns.RestoreBindings(binds)
 end
 
 ---Restore pet bar slots from a profile's petslots array.
+---Pet-bar restore is merge-only by design: it places the profile's pet slots but does
+---NOT clear slots absent from the profile. Most pet-bar buttons are the pet's intrinsic
+---tokens (attack/follow/stances + the pet's own abilities), so blanking "unused" slots
+---risks stripping a different pet's built-in actions (gap #7 deliberately skipped).
 ---@param petslots table
 function ns.RestorePetBar(petslots)
   if not IsPetActive() then return end
-  local tokens = {}
-  for i = 1, NUM_PET_ACTION_SLOTS do
-    local name, _, isToken = GetPetActionInfo(i)
-    if isToken then tokens[name] = i end
+
+  -- Re-scan the token slots for each placement: placing a token swaps the two
+  -- slots' contents, so a name->slot map built once goes stale across
+  -- placements and would move the wrong token (B4).
+  local function tokenSlot(name)
+    for i = 1, NUM_PET_ACTION_SLOTS do
+      local n, _, isToken = GetPetActionInfo(i)
+      if isToken and n == name then return i end
+    end
   end
+
   for _, p in ipairs(petslots) do
-    if p.type == "token" and tokens[p.strindex] then
-      PickupPetAction(tokens[p.strindex])
-      PickupPetAction(p.id)
-    elseif p.type == "spell" then
+    if p.type == "token" then
+      local from = tokenSlot(p.strindex)
+      if from then
+        PickupPetAction(from)
+        PickupPetAction(p.id)
+      end
+    elseif p.type == "spell" and PickupPetSpell then
+      -- PickupPetSpell is not present on every client; guard it so pet-bar restore
+      -- never errors when it's absent (the spell slot is simply skipped). Both calls
+      -- are gated together so PickupPetAction can't pick up the existing slot action
+      -- with an empty cursor (issue #68 / B9).
       PickupPetSpell(p.index)
       PickupPetAction(p.id)
     end

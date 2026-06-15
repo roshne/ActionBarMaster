@@ -48,7 +48,8 @@ ns.Decode(text)                       -- → profile, err (nil, msg on failure)
 ns.AutoSave()                         -- capture + upsert autosave entry in db.profiles
 ns.RestoreMacrosAndSlots(macros, slots) -- ensure macros exist, place macro slots
 ns.RestoreBindings(binds)             -- apply + persist key bindings
-ns.RestorePetBar(petslots)            -- apply pet bar (no-op without active pet)
+ns.RestorePetBar(petslots)            -- apply pet bar (no-op without active pet); rescans token slots
+                                      --   per placement (B4). Merge-only: does NOT clear unused slots
 ns.ClearUnusedSlots(slots, barFilter?) -- blank action slots absent from profile
 ns.BuildProfileList(parent, onSelect) -- → scroll, Refresh(), GetSelected(), SetSelected(entry), SetClassFilter(key, specOnly)
                                       -- selection is identity-based: GetSelected/onSelect yield the profile ENTRY (not an index)
@@ -171,7 +172,7 @@ profile = {
 3. **`RestoreSlots`** — everything else per slot type (each slot wrapped in `pcall`; content that isn't available on this character blanks the slot). Equipment sets and outfits resolve by **name** first (`strindex` identity), falling back to the stored list position for pre-identity profiles. Unresolvable slots are collected as "misses" (not printed individually) and flushed as a **single summary line** at the end of `ns.Restore` — async item-info lookups (`GET_ITEM_INFO_RECEIVED`) defer the flush until the last one resolves (`pendingItems` counter). True per-slot errors and the flyout "drag from spellbook" instruction still print immediately via `Warn`.
 4. **`ClearUnusedSlots`** — blank action slots not present in the profile (respects `barFilter`).
 5. **`RestoreBindings`** — `SetBinding` + `SaveBindings`. Merge-only: keys absent from the profile are not unbound.
-6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet, never clears unused pet slots.
+6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet. Re-scans token slots per placement (placing a token swaps slots, staling a once-built map — B4). **Merge-only — does NOT clear unused pet slots** (gap #7 deliberately skipped: most pet-bar buttons are the pet's intrinsic tokens, so blanking "unused" slots risks stripping a different pet's built-in actions).
 
 `barFilter` (`{ [barNum|"pet"] = bool }`, from the grid checkboxes via `GetChecked()`): entries set to `false` are skipped by slot restore and unused-slot clearing.
 
