@@ -73,15 +73,33 @@ end
 local pendingItemWarns = {}
 
 ns:registerEvent("GET_ITEM_INFO_RECEIVED", function(self, itemID, success)
-  if pendingItemWarns[itemID] then
-    local tag = pendingItemWarns[itemID]
-    pendingItemWarns[itemID] = nil
-    local link = success and select(2, GetItemInfo(itemID))
-               or ("|Hitem:" .. itemID .. "|h[item:" .. itemID .. "]|h")
-    Miss(tag .. "Missing item " .. link)
-    pendingItems = pendingItems - 1
-    if restoreFinished and pendingItems == 0 then FlushMisses() end
+  local pend = pendingItemWarns[itemID]
+  if not pend then return end
+  pendingItemWarns[itemID] = nil
+  pendingItems = pendingItems - 1
+
+  -- Retry placement now that the item's data has loaded: PickupItem(link)
+  -- resolves items that only respond to the link form, which the ID-only pickup
+  -- at restore time missed. Guard combat (this event can fire well after the
+  -- restore window) and only fill if the slot is still empty, so we don't
+  -- clobber a change the user made in the meantime.
+  local placed = false
+  if success and not InCombatLockdown() and not GetActionInfo(pend.id) then
+    ClearCursor()
+    local link = select(2, GetItemInfo(itemID))
+    if link then PickupItem(link) end
+    if not GetCursorInfo() then PickupItem(itemID) end
+    if GetCursorInfo() then PlaceAction(pend.id) end
+    ClearCursor()
+    placed = GetActionInfo(pend.id) ~= nil
   end
+
+  if not placed then
+    local link = (success and select(2, GetItemInfo(itemID)))
+               or ("|Hitem:" .. itemID .. "|h[item:" .. itemID .. "]|h")
+    Miss(pend.label .. "Missing item " .. link)
+  end
+  if restoreFinished and pendingItems == 0 then FlushMisses() end
 end)
 
 -- Build override map (bidirectional base <-> override) and flyout map
@@ -191,7 +209,8 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
             local suffix = (isToy and not PlayerHasToy(s.index)) and " (not in Toy Box)" or ""
             Miss(slot .. "Missing item " .. link .. suffix)
           else
-            pendingItemWarns[s.index] = slot
+            -- defer: warn (and retry placement) once the item's data loads
+            pendingItemWarns[s.index] = { id = s.id, label = slot }
             pendingItems = pendingItems + 1
             C_Item.RequestLoadItemDataByID(s.index)
           end
