@@ -25,11 +25,18 @@ regardless of filters), or at minimum loop `GetNumDisplayedMounts()` and warn+bl
 
 **2026-06-11 fix attempt reverted** — switching to `GetNumDisplayedMounts()` +
 `Pickup(displayedIndex)` with a `PickupSpell(mount spell)` fallback stopped mounts restoring
-entirely in-game, while the original code works in practice. Open questions before retrying:
-whether `C_MountJournal.Pickup` expects a 0-based index (the working `Pickup(0)` fallback
-hints it might, making a 1-based displayed loop off by one), and whether `PickupSpell`
-accepts mount summon spell IDs at all. Needs in-game `/dump` investigation of
-`Pickup`/`GetDisplayedMountInfo` index alignment before a second attempt.
+entirely in-game.
+
+**2026-06-14 — RESOLVED (issue #64, PR pending).** Settled the open questions: the API docs
+(`MountJournalDocumentation.lua`) define `Pickup(displayIndex)` as a **`luaIndex` (1-based)**, and
+Blizzard uses `Pickup(0)` as its own "pick up nothing" call — so the old `Pickup(0)` fallback was
+never a valid mount. In-game probe (journal closed) returned `GetNumMounts()=1607` vs
+`GetNumDisplayedMounts()=1144`: the displayed list **is** populated outside the journal UI (no
+lazy-load trap — the likely real cause of the revert was the dropped `PickupSpell` fallback, not
+the index). **Fix:** loop `1..GetNumDisplayedMounts()`, match by mountID, and **warn+blank on miss**
+(`Miss`) instead of `Pickup(0)`. No `PickupSpell` path. A mount hidden by an active source filter is
+blanked with a clear message rather than mis-placed. Needs an in-game smoke test (restore a mount with
+a source filter active).
 
 ### B2. Toy "not in Toy Box" check reads itemQuality, not ownership — **fixed, verified in-game**
 `restore.lua:145`. `select(6, C_ToyBox.GetToyInfo(id))` is **itemQuality**

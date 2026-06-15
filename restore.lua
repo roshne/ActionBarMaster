@@ -256,14 +256,25 @@ local function RestoreSlots(slots, overrides, flyouts, race, class)
         if not GetCursorInfo() then C_PetJournal.PickupPet(s.strindex, true) end
         if not GetCursorInfo() then Miss(slot .. "Missing pet [" .. tostring(s.strindex) .. "]") end
       elseif s.type == "summonmount" then
+        -- GetDisplayedMountInfo indexes the DISPLAYED (filtered) list, bounded by
+        -- GetNumDisplayedMounts() — not GetNumMounts() (the full catalog). Pickup's
+        -- arg is a 1-based luaIndex into that same displayed list. The old code looped
+        -- to GetNumMounts() and fell back to Pickup(0) (Blizzard's "pick up nothing"
+        -- index), which silently placed a wrong/no mount when a journal filter hid the
+        -- target. Loop the displayed bound, and warn+blank on a miss like other slots.
         local mi
         if C_MountJournal then
-          for i = 1, C_MountJournal.GetNumMounts() do
-            local _, _, _, _, _, _, _, _, _, _, mountCol, mid = C_MountJournal.GetDisplayedMountInfo(i)
-            if mountCol and mid == s.index then mi = i; break end
+          for i = 1, C_MountJournal.GetNumDisplayedMounts() do
+            local _, _, _, _, _, _, _, _, _, _, isCollected, mid = C_MountJournal.GetDisplayedMountInfo(i)
+            if isCollected and mid == s.index then mi = i; break end
           end
         end
-        if mi then C_MountJournal.Pickup(mi) else C_MountJournal.Pickup(0) end
+        if mi then
+          C_MountJournal.Pickup(mi)
+        else
+          Miss(slot .. "Missing mount #" .. tostring(s.index)
+            .. " (uncollected, or hidden by an active mount-journal filter)")
+        end
       elseif s.type == "companion" then
         -- legacy pre-journal mount/mini-pet action; index is the summon spell ID
         PickupSpell(s.index)
