@@ -1,8 +1,8 @@
-## Interface: 120001
+## Interface: 120007
 ## Title: Action Bar Master
 ## Notes: Action bar, keybind, macro, and outfit profiles
 ## Author: Roshne
-## Version: 12.0.5-r0
+## Version: 12.0.7-r0
 ## X-License: Apache-2.0
 ## Dependencies: LibNAddOn, LibNUI
 ## SavedVariables: ActionBarMasterDB
