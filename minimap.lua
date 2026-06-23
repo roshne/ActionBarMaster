@@ -47,9 +47,10 @@ local function CreateButton()
   icon:SetTexture(ICON)
   b.icon = icon
 
-  local hl = b:CreateTexture(nil, "HIGHLIGHT")
-  hl:SetAllPoints(b)
-  hl:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+  -- Button:SetHighlightTexture defaults to ADD blend, so the glow brightens the
+  -- icon on hover instead of painting over it (a plain HIGHLIGHT-layer texture
+  -- defaults to BLEND and would hide the icon).
+  b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 
   b:SetScript("OnDragStart", function(self) self:SetScript("OnUpdate", DragUpdate) end)
   b:SetScript("OnDragStop",  function(self) self:SetScript("OnUpdate", nil) end)
