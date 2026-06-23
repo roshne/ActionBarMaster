@@ -1,34 +1,61 @@
 # Action Bar Master
 
-Capture and restore your action bars, keybindings, macros, pet bar, and equipment-set placements as shareable, encoded text profiles. Swap full setups between specs and characters, or share just a few bars with anyone.
+Save your entire action setup — bars, keybinds, macros, pet bar, and equipment-set placements — as a named profile, then restore it on any character or share it as a single block of text.
 
-## Features
+Great for alts that play the same spec, for rebuilding your bars after a wipe of your settings, or for handing a friend a ready-made layout.
 
-- **Profiles** — save the current action bars, keybinds, macros, and pet bar as a named profile, and restore them on any character.
-- **Autosave** — your bars are saved automatically on login and whenever you change spec, one entry per character + spec.
-- **Per-bar sharing** — uncheck bars before saving to create a partial profile that any class can import.
-- **Import / export** — copy a profile to a text string to share, and paste one back to restore.
-- **Duplicate scan** — find the same action placed on multiple slots.
+## What gets captured
+
+A profile stores everything it takes to rebuild your bars:
+
+- **Action bars** — every slot across all bars: spells, items, macros, mounts, pets, flyouts, professions, racials, and equipment sets.
+- **Keybindings** — your full key map (full profiles only).
+- **Macros** — the macros referenced by your bars, with their names, icons, and bodies.
+- **Pet bar** — pet spells and tokens.
+
+Profiles are encoded into a compact text string so they can be copied, pasted, and shared.
+
+## Getting started
+
+1. Open the window with `/bars` (or click the minimap button).
+2. Your current bars are saved automatically on login and whenever you change spec, so there's usually an **autosave** entry waiting for you.
+3. To keep a named copy, click **Save**, give it a name, and confirm.
+4. To apply a profile, select it in the list and click **Load**. Restoring is blocked in combat.
+
+### Sharing a layout
+
+- **Export** turns the selected profile into text — copy it and send it to anyone.
+- **Import** takes a pasted string and restores it after you confirm.
+- To share with **any class**, untick the bars you don't want before saving. The result is a *partial* profile that ignores class/spec and only touches the bars it contains — handy for sharing just a utility bar or a single rotation row.
+
+## The window
+
+- **Profile list** on the left, filtered by class/spec (defaults to your current class). Autosaves are tagged; all-class shared profiles show an `[s]`.
+- **Bar preview grid** on the right shows each bar's icons. Tick or untick bars to control what a Save captures or a Load restores, or use **Check All / Uncheck All**.
+- **Drag the grip** on any bar row to reorder how bars are displayed.
+- **Dupes** scans the selected profile for the same action placed in more than one slot, with a per-finding Ignore.
+
+> **Loading replaces, it doesn't merge.** A full profile clears action slots and keybindings that aren't part of it, so the result matches the profile exactly. Untick bars before loading to leave them alone.
 
 ## Minimap button
 
 A round Action Bar Master button sits on the minimap edge:
 
-- **Right-click** — open (or close) the main window.
-- **Shift-right-click** — small menu (Open / Hide minimap button).
-- **Drag** — move the button around the minimap ring.
+- **Right-click** — open or close the window.
+- **Shift-right-click** — menu (Open / Hide minimap button).
+- **Drag** — move it around the minimap ring.
 
-Left-click is unused for now. Toggle the button on or off any time with `/bars minimap`.
+Hide or show it any time with `/bars minimap`.
 
 ## Slash commands
 
 | Command | Action |
 |---|---|
-| `/bars`, `/wbars` | Open or close the main window |
+| `/bars`, `/wbars` | Open or close the window |
 | `/bars minimap` | Show or hide the minimap button |
-| `/bars resetpos` | Recenter the window (recovery if it ends up off-screen) |
-| `/bars sn` | Autosave now |
+| `/bars sn` | Autosave the current bars now |
 | `/bars dupes` | Open the duplicate-slot scanner |
+| `/bars resetpos` | Recenter the window if it ends up off-screen |
 
 ## Dependencies
 
@@ -36,4 +63,4 @@ Requires **LibNAddOn** and **LibNUI**.
 
 ## Saved data
 
-Stored per account in `ActionBarMasterDB` (profiles, window position, bar display order, and minimap-button state).
+Everything is stored account-wide in `ActionBarMasterDB`: your profiles, the window position, the bar display order, and the minimap-button state. Profiles are visible to every character on the account (filtered in the list by class).
