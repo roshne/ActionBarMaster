@@ -4,12 +4,15 @@
 ## Author: Roshne
 ## Version: 12.0.7-r0
 ## X-License: Apache-2.0
+## IconTexture: Interface\AddOns\ActionBarMaster\textures\minimap.png
 ## Dependencies: LibNAddOn, LibNUI
 ## SavedVariables: ActionBarMasterDB
+## AddonCompartmentFunc: ActionBarMaster_OnAddonCompartmentClick
 ## X-NUI-UI: LibNUI
 ## X-NUI-DB: ActionBarMasterDB
 ## X-NUI-DB-VERSION: 2
 ## X-NUI-COMMANDS: /bars, /wbars
+## X-NUI-COMPARTMENT: ActionBarMaster_OnAddonCompartmentClick
 
 libs\base64.lua
 libs\crc32.lua
