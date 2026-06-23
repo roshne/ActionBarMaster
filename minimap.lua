@@ -57,16 +57,17 @@ local function CreateButton()
 
   b:SetScript("OnClick", function(_, mouseButton)
     if mouseButton == "RightButton" then
-      if IsShiftKeyDown() then ns:ToggleMainWindow() else ShowMenu() end
+      ShowMenu()
+    else
+      ns:ToggleMainWindow()
     end
-    -- LeftButton: reserved (nothing for now)
   end)
 
   b:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("Action Bar Master")
+    GameTooltip:AddLine("Left-click to open", 0.8, 0.8, 0.8)
     GameTooltip:AddLine("Right-click for menu", 0.8, 0.8, 0.8)
-    GameTooltip:AddLine("Shift-right-click to open", 0.8, 0.8, 0.8)
     GameTooltip:AddLine("Drag to move", 0.8, 0.8, 0.8)
     GameTooltip:Show()
   end)
