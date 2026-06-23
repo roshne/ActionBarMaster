@@ -41,11 +41,11 @@ Profiles are encoded into a compact text string so they can be copied, pasted, a
 
 A round Action Bar Master button sits on the minimap edge:
 
+- **Left-click** — open or close the window.
 - **Right-click** — menu (Open / Hide minimap button).
-- **Shift-right-click** — open or close the window.
 - **Drag** — move it around the minimap ring.
 
-Hide or show it any time with `/bars minimap`.
+Hide or show it any time with `/bars minimap`. Even with the button hidden, Action Bar Master is always reachable from the addon-compartment menu at the top of the minimap.
 
 ## Slash commands
 
