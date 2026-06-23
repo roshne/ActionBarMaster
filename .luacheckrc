@@ -38,7 +38,7 @@ std = {
     -- frames / widgets / helpers
     "CreateFrame", "CreateAtlasMarkup", "GameTooltip", "UIParent", "UISpecialFrames",
     "StaticPopup_Show", "GetAtlasInfo", "hooksecurefunc", "ClearCursor", "GetCursorInfo",
-    "GetCursorPosition", "Minimap", "MenuUtil", "GetMinimapShape", "AddonCompartmentFrame",
+    "GetCursorPosition",
 
     -- C_* namespaces
     "C_ActionBar", "C_AssistedCombat", "C_ClassColor", "C_EquipmentSet", "C_Item", "C_MountJournal",
