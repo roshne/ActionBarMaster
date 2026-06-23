@@ -43,6 +43,12 @@ ns:registerEvent("PLAYER_LOGIN", function()
         ns:ToggleMainWindow()
       end
     end,
-    compartment = { text = "Action Bar Master", onClick = function() ns:ToggleMainWindow() end },
   }
 end)
+
+-- Addon-compartment entry (top-of-minimap menu) — registered declaratively via
+-- the .toc (AddonCompartmentFunc + X-NUI-COMPARTMENT, wired by LibNAddOn), so it
+-- works independently of the minimap button.
+function ns:CompartmentClick()
+  self:ToggleMainWindow()
+end
