@@ -28,7 +28,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 | `barsview.lua` | `ns.BuildBarsGrid(parent) → { Update(profile?), GetChecked() }` — pooled icon grid preview |
 | `window.lua` | Main UI window — wires list, filter, grid, buttons, and static popups together |
 | `window_dialogs.lua` | `ns.BuildSaveDialog`, `ns.BuildExportDialog`, `ns.BuildImportDialog` modal builders |
-| `minimap.lua` | Minimap button (`textures\minimap.png`): left-click opens, right-click menu, drag to move; `ns.SetMinimapShown`, `/bars minimap` |
+| `minimap.lua` | Minimap button (`textures\minimap.png`): left-click opens, right-click menu, drag to move; `ns.SetMinimapShown`, `/bars minimap`; also registers an `AddonCompartmentFrame` entry |
 | `debug.lua` | `/bars debug <sub>` commands; scrollable copyable output window |
 | `libs/base64.lua` | `ns.base64.enc(bytes)`, `ns.base64.dec(str)` |
 | `libs/crc32.lua` | `ns.crc32.enc(bytes) → uint32` |

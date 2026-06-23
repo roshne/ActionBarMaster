@@ -139,6 +139,26 @@ function ns.SetMinimapShown(show)
   end
 end
 
+-- Register an entry in Blizzard's addon compartment (the menu at the top of the
+-- minimap) — a stable access point even when the minimap button is hidden.
+-- Additive and library-free; retail-only, hence the guard.
+local function RegisterCompartment()
+  if not AddonCompartmentFrame then return end
+  AddonCompartmentFrame:RegisterAddon({
+    text         = "Action Bar Master",
+    icon         = ICON,
+    notCheckable = true,
+    func         = function() ns:ToggleMainWindow() end,
+    funcOnEnter  = function(frame)
+      GameTooltip:SetOwner(frame, "ANCHOR_LEFT")
+      GameTooltip:AddLine("Action Bar Master")
+      GameTooltip:AddLine("Click to open", 0.8, 0.8, 0.8)
+      GameTooltip:Show()
+    end,
+    funcOnLeave  = function() GameTooltip:Hide() end,
+  })
+end
+
 ns:registerCommand("minimap", nil, function()
   ns.SetMinimapShown(ns.db.minimap.hide)  -- toggle from current state
   ns.Print(ns.db.minimap.hide and "Minimap button hidden." or "Minimap button shown.")
@@ -149,4 +169,5 @@ ns:registerEvent("PLAYER_LOGIN", function()
   ns.db.minimap = ns.db.minimap or {}
   if ns.db.minimap.angle == nil then ns.db.minimap.angle = DEFAULT_ANGLE end
   ns.SetMinimapShown(not ns.db.minimap.hide)
+  RegisterCompartment()
 end)
