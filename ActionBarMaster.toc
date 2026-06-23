@@ -31,4 +31,5 @@ barsview_drag.lua
 barsview.lua
 window_dialogs.lua
 window.lua
+minimap.lua
 debug.lua

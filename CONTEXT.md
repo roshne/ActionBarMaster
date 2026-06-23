@@ -28,6 +28,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 | `barsview.lua` | `ns.BuildBarsGrid(parent) → { Update(profile?), GetChecked() }` — pooled icon grid preview |
 | `window.lua` | Main UI window — wires list, filter, grid, buttons, and static popups together |
 | `window_dialogs.lua` | `ns.BuildSaveDialog`, `ns.BuildExportDialog`, `ns.BuildImportDialog` modal builders |
+| `minimap.lua` | Minimap button (`textures\minimap.png`): right-click menu, shift-right-click opens, drag to move; `ns.SetMinimapShown`, `/bars minimap` |
 | `debug.lua` | `/bars debug <sub>` commands; scrollable copyable output window |
 | `libs/base64.lua` | `ns.base64.enc(bytes)`, `ns.base64.dec(str)` |
 | `libs/crc32.lua` | `ns.crc32.enc(bytes) → uint32` |
@@ -72,6 +73,7 @@ ns.delay(ms, fn)                      -- one-shot timer (overwrites any pending)
 ns:Open()                             -- show the main window
 ns:ToggleMainWindow()                 -- bare-command toggle: hide if open, else Open()
 ns:HideMainWindow()                   -- hide the main window if it exists
+ns.SetMinimapShown(show)              -- show/hide minimap button + persist (db.minimap.hide); builds it lazily on first show
 ns.db                                 -- live ref to ActionBarMasterDB
 ```
 
@@ -87,6 +89,7 @@ ActionBarMasterDB = {
   windowPos = { x = number, y = number },  -- saved window position (TOPLEFT anchor)
   barOrder   = { int, ... },   -- abm bar numbers in display order (drag-to-reorder)
   ackedDupes = { [string] = true, ... },  -- lazy-init; key = "profileName|actionKey"; ignored duplicates
+  minimap    = { angle = number, hide = bool },  -- lazy-init (minimap.lua, PLAYER_LOGIN); ring angle in degrees
   profiles  = {               -- array; index 1 = most recent
     {
       name     = string,      -- display name (user-entered or "Char - Spec")
@@ -231,6 +234,7 @@ Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used a
 |---|---|
 | `/bars`, `/wbars` | Toggle the main window (closes it if already open) |
 | `/bars resetpos` | Recenter the window to its default position (recovery if a resolution/scale change orphaned it off-screen) |
+| `/bars minimap` | Toggle the minimap button on/off (persisted in `db.minimap.hide`) |
 | `/bars sn` | Autosave now |
 | `/bars dupes` | Toggle the duplicate-scan window (closes it if already open); Ignore button per finding |
 | `/bars debug flyouts` | Dump flyout spellbook and bar-slot state |
