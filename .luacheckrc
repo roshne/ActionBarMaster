@@ -43,7 +43,7 @@ std = {
     -- C_* namespaces
     "C_ActionBar", "C_AssistedCombat", "C_ClassColor", "C_EquipmentSet", "C_Item", "C_MountJournal",
     "C_PetJournal", "C_Spell", "C_SpellBook", "C_ToyBox", "C_TransmogOutfitInfo",
-    "Enum",
+    "Constants", "Enum",
 
     -- action bars / spells / items / macros / bindings
     "GetActionInfo", "GetFlyoutInfo", "GetFlyoutSlotInfo", "GetItemIcon", "GetItemInfo",
