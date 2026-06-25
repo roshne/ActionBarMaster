@@ -1,6 +1,12 @@
 local _, ns = ...
 
 local MAX_BARS   = 180
+-- 12.1.0 moved these out of the global namespace into Constants.MacroConsts. The
+-- bare globals throwing here at load time would abort the whole file. Prefer the
+-- new namespace, then the old global, then the long-standing literals.
+local MacroConsts = Constants and Constants.MacroConsts
+local MAX_ACCOUNT_MACROS   = (MacroConsts and MacroConsts.MAX_ACCOUNT_MACROS)   or MAX_ACCOUNT_MACROS   or 120
+local MAX_CHARACTER_MACROS = (MacroConsts and MacroConsts.MAX_CHARACTER_MACROS) or MAX_CHARACTER_MACROS or 30
 local MAX_MACROS = MAX_ACCOUNT_MACROS + MAX_CHARACTER_MACROS
 
 -- Spell overrides: override spellId -> base spellId
