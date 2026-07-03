@@ -23,7 +23,7 @@ std = {
   },
   read_globals = {
     -- Lua / WoW base
-    "bit", "date", "floor", "format", "gsub", "ipairs", "math", "next", "pairs",
+    "assert", "bit", "date", "floor", "format", "gsub", "ipairs", "math", "next", "pairs",
     "pcall", "print", "select", "setmetatable", "string", "strsub", "strtrim",
     "strupper", "table", "tonumber", "tostring", "type", "unpack", "wipe",
     "Mixin", "CopyTable", "IsWindowsClient",

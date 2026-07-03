@@ -73,7 +73,7 @@ ns.delay(ms, fn)                      -- one-shot timer (overwrites any pending)
 ns:Open()                             -- show the main window
 ns:ToggleMainWindow()                 -- bare-command toggle: hide if open, else Open()
 ns:HideMainWindow()                   -- hide the main window if it exists
-ns.SetMinimapShown(show)              -- show/hide minimap button + persist (db.minimap.hide); builds it lazily on first show
+ns.SetMinimapShown(show)              -- show/hide minimap button + persist (db.minimap.hide); the button is built eagerly at PLAYER_LOGIN (no-op before that)
 ns:CompartmentClick()                 -- addon-compartment entry handler (toc AddonCompartmentFunc) → ToggleMainWindow
 ns.db                                 -- live ref to ActionBarMasterDB
 ```
@@ -175,7 +175,7 @@ profile = {
 2. **`RestoreMacrosAndSlots`** — find-or-create each profile macro (matched by name + trimmed body), then place macro slots via the old→new index map.
 3. **`RestoreSlots`** — everything else per slot type (each slot wrapped in `pcall`; content that isn't available on this character blanks the slot). Equipment sets and outfits resolve by **name** first (`strindex` identity), falling back to the stored list position for pre-identity profiles. Unresolvable slots are collected as "misses" (not printed individually) and flushed as a **single summary line** at the end of `ns.Restore` — async item-info lookups (`GET_ITEM_INFO_RECEIVED`) defer the flush until the last one resolves (`pendingItems` counter), and **retry placement** when the data loads (`PickupItem(link)` resolves items that only respond to the link form) before warning — combat-guarded, and only into a still-empty slot. True per-slot errors and the flyout "drag from spellbook" instruction still print immediately via `Warn`. **assistedcombat** slots are captured as the action's own spell id (not the volatile `C_AssistedCombat.GetActionSpell()` suggestion), so they restore as the assist action rather than a frozen rotation spell.
 4. **`ClearUnusedSlots`** — blank action slots not present in the profile (respects `barFilter`).
-5. **`RestoreBindings`** — clear-then-apply: clears the character's current key bindings, then applies the profile's + `SaveBindings`, so the key map mirrors the profile exactly (consistent with `ClearUnusedSlots` for action slots). Only runs for full profiles — partial/shared profiles carry no binds.
+5. **`RestoreBindings`** — clear-then-apply: clears the character's current key bindings, then applies the profile's + `SaveBindings` — a restore rather than a merge (consistent with `ClearUnusedSlots` for action slots). Scope caveat: capture and clear both cover only `GetBinding`'s key1/key2, so a 3rd+ key bound to a command is neither captured nor cleared. Only runs for full profiles — partial/shared profiles carry no binds.
 6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet. Re-scans token slots per placement (placing a token swaps slots, staling a once-built map — B4). **Merge-only — does NOT clear unused pet slots** (gap #7 deliberately skipped: most pet-bar buttons are the pet's intrinsic tokens, so blanking "unused" slots risks stripping a different pet's built-in actions).
 
 `barFilter` (`{ [barNum|"pet"] = bool }`, from the grid checkboxes via `GetChecked()`): entries set to `false` are skipped by slot restore and unused-slot clearing.

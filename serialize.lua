@@ -26,6 +26,9 @@ local function Pack(profile)
   end
   local function str8(s)
     s = s or ""
+    -- The length must fit one byte; wrapping it (#s % 256) would silently
+    -- corrupt the whole export from this field on.
+    assert(#s <= 255, "profile string too long to export (" .. #s .. " > 255): " .. string.sub(s, 1, 40))
     byte(#s)
     for i = 1, #s do buf[#buf+1] = string.byte(s, i) end
   end

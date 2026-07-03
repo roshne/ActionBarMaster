@@ -5,6 +5,7 @@
     "SlashCmdList",
     "StaticPopupDialogs",
 
+    "assert",
     "bit",
     "date",
     "floor",
