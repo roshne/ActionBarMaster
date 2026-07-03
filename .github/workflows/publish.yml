@@ -1,0 +1,11 @@
+name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  curseforge:
+    uses: roshne/addon-ci/.github/workflows/publish.yml@main
+    secrets: inherit
