@@ -40,7 +40,7 @@ Depends on **LibNAddOn** (addon init, events, DB, settings, slash commands) and 
 - **Lint**: `luacheck` (config in `.luacheckrc`). CI is **strict** — any warning fails the
   build, and the repo lints clean. Keep it that way. When you add a WoW global, add it to
   `read_globals`.
-- CI runs luacheck on every PR and push to `main` (`.github/workflows/test.yml`).
+- CI runs luacheck on every PR and push to `main` (`.github/workflows/ci.yml`).
 
 ## Branching
 
