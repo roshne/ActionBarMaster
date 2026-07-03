@@ -60,11 +60,12 @@ function ns.RestoreMacrosAndSlots(macros, slots)
 end
 
 ---Apply saved key bindings and persist them.
----Faithful mirror, consistent with how action slots restore (ClearUnusedSlots blanks
+---Clear-then-apply, consistent with how action slots restore (ClearUnusedSlots blanks
 ---slots absent from the profile): clear the character's current key bindings first, then
----apply the profile's, so the key map ends up exactly as captured rather than merged.
----Capture stores the FULL binding set, and ns.Restore only calls this for full profiles
----(partial/shared profiles carry no binds), so nothing the source had is lost.
+---apply the profile's, so the result is a restore rather than a merge. Scope caveat:
+---capture and clear both cover only the first two keys per command (GetBinding's
+---key1/key2), so a 3rd+ key bound to a command is neither captured nor cleared.
+---ns.Restore only calls this for full profiles (partial/shared profiles carry no binds).
 ---@param binds table
 function ns.RestoreBindings(binds)
   -- Collect every currently-bound key first, then clear, so we never mutate bindings
