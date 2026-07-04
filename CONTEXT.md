@@ -16,7 +16,8 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 |---|---|
 | `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`) |
 | `capture.lua` | `ns.Capture(barFilter?) → profile` — builds profile from current character state; partial shared profiles |
-| `restore.lua` | `ns.Restore(profile, barFilter?)` — applies profile; no-op in combat. Flyout pre-pass + per-slot restore |
+| `restore.lua` | `ns.Restore(profile, barFilter?)` — orchestrates the restore passes; no-op in combat. Owns the miss/async-item summary state + hooks (`ns.RestoreMiss`, `ns.DeferItemWarn`, the `GET_ITEM_INFO_RECEIVED` retry) |
+| `restore_slots.lua` | `ns.RestoreSlots` (per-slot pickup ladder), `ns.RestoreFlyouts` (flyout pre-pass), `ns.BuildSpellbookMaps` (override + flyout maps) — split from `restore.lua` for the file-size cap; consumes `restore.lua`'s miss/defer hooks |
 | `restore_pass.lua` | Helper passes: `ns.RestoreMacrosAndSlots`, `ns.RestoreBindings`, `ns.RestorePetBar`, `ns.ClearUnusedSlots` |
 | `serialize.lua` | `ns.Encode(profile) → string`, `ns.Decode(text) → profile, err`; format v2 (full) / v3 (partial) |
 | `autosave.lua` | Auto-saves on `PLAYER_ENTERING_WORLD`, `ACTIVE_TALENT_GROUP_CHANGED`; `ns.AutoSave()` |

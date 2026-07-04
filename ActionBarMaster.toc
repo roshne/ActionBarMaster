@@ -22,9 +22,11 @@ libs\professions.lua
 init.lua
 capture.lua
 restore_pass.lua
+restore_slots.lua
 restore.lua
 serialize.lua
 autosave.lua
+dupes_scan.lua
 dupes.lua
 dupes_detail.lua
 profilelist.lua
