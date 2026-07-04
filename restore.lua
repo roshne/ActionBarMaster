@@ -343,6 +343,12 @@ function ns.Restore(profile, barFilter)
     return
   end
   wipe(misses)
+  -- Also drop any still-pending item-info deferrals from a PRIOR restore. Their delayed
+  -- GET_ITEM_INFO_RECEIVED would otherwise decrement this restore's freshly-reset
+  -- pendingItems (no floor → -1), corrupting the end-of-restore flush guard: this restore
+  -- supersedes the last, so its stale retries/misses are moot. The event handler ignores
+  -- an itemID with no live entry, so in-flight events for the old restore no-op.
+  wipe(pendingItemWarns)
   restoreFinished = false
   pendingItems    = 0
 
