@@ -16,6 +16,32 @@ local function petName(petID)
   return customName or name
 end
 
+-- Resolve a captured equipment-set slot to a live set ID by stored NAME (identity)
+-- first, falling back to the captured list position for pre-identity profiles — the same
+-- name-first resolution restore.lua uses, so the grid preview matches what restore places.
+local function resolveSetID(entry)
+  local ids = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
+  if not ids then return nil end
+  if entry.strindex then
+    for _, id in ipairs(ids) do
+      if C_EquipmentSet.GetEquipmentSetInfo(id) == entry.strindex then return id end
+    end
+  end
+  return ids[entry.index]
+end
+
+-- Resolve a captured outfit slot to its live outfit info by stored NAME first, else position.
+local function resolveOutfit(entry)
+  local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
+  if not outfits then return nil end
+  if entry.strindex then
+    for _, info in ipairs(outfits) do
+      if info.name == entry.strindex then return info end
+    end
+  end
+  return outfits[entry.index]
+end
+
 local function profSpellID(entry)
   local id = entry.profSlot and ns.GetProfessionSpellID(entry.index, entry.profSlot)
   if not id and entry.strindex then
@@ -88,15 +114,13 @@ local function getIcon(entry, macros)
     -- legacy pre-journal mount/mini-pet action; index is the summon spell ID
     return spellTex(entry.index)
   elseif t == "equipmentset" then
-    local ids   = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
-    local setID = ids and ids[entry.index]
+    local setID = resolveSetID(entry)
     if setID then
       local _, icon = C_EquipmentSet.GetEquipmentSetInfo(setID)
       return icon
     end
   elseif t == "outfit" then
-    local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
-    local info    = outfits and outfits[entry.index]
+    local info = resolveOutfit(entry)
     return info and info.icon
   elseif t == "summonpet" then
     if C_PetJournal and entry.strindex then
@@ -149,13 +173,11 @@ local function addTooltip(btn, entry, macros)
     elseif t == "summonpet" then
       GameTooltip:AddLine(petName(entry.strindex) or "Battle pet (not in collection)", 1, 1, 1)
     elseif t == "equipmentset" then
-      local ids   = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
-      local setID = ids and ids[entry.index]
+      local setID = resolveSetID(entry)
       local name  = setID and C_EquipmentSet.GetEquipmentSetInfo(setID) or "Equipment Set"
       GameTooltip:AddLine(name, 1, 1, 1)
     elseif t == "outfit" then
-      local outfits = C_TransmogOutfitInfo and C_TransmogOutfitInfo.GetOutfitsInfo()
-      local info    = outfits and outfits[entry.index]
+      local info = resolveOutfit(entry)
       GameTooltip:AddLine(info and info.name or "Outfit", 1, 1, 1)
     end
     GameTooltip:Show()

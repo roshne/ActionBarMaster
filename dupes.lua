@@ -115,10 +115,12 @@ local dupeWindow = nil
 local function getWindow()
   if dupeWindow then return dupeWindow end
 
+  -- Not `special`: like every nested frame in the addon (Save/Export/Import/Debug, the
+  -- class filter), Escape is handled by ns.CaptureEscape below — a `special` frame would
+  -- route Escape through CloseSpecialWindows and take the main window down with it.
   local f = ui.TitleFrame:new{
     name     = "ABMDupesWindow",
     title    = "Duplicate Actions",
-    special  = true,
     level    = 600,
     position = { Center = {}, Width = WIN_W, Height = WIN_H },
   }

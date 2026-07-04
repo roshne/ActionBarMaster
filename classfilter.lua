@@ -75,7 +75,7 @@ function ns.BuildClassFilter(parent, position, onSelect)
   }
   triggerLabel = ui.Label:new{
     parent   = triggerBtn,
-    text     = "All Classes v",
+    text     = "All Classes" .. ARROW,
     position = { Left = { triggerBtn, ui.edge.Left, 4, 0 }, Top = {}, Bottom = {} },
   }
 
