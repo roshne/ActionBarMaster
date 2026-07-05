@@ -1,0 +1,14 @@
+name: discord
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    # Only merged PRs post (plus manual test runs) — closed-without-merge stays silent.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    uses: roshne/addon-ci/.github/workflows/discord.yml@main
+    secrets: inherit

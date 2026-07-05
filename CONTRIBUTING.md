@@ -54,3 +54,22 @@ mirrors the WoW client version (e.g. `12.0.7-r0`). Bump `MAJOR.MINOR.PATCH` when
 support for a new client version (alongside the `## Interface:` field); increment
 `-rREVISION` for subsequent releases within the same client version. Doc-only (`.md`)
 changes don't warrant a revision bump.
+
+## Releases
+
+Releases are fully automated via the reusable workflows in
+[addon-ci](https://github.com/roshne/addon-ci) — **never bump `-rREVISION` by hand**:
+
+- **release** (`.github/workflows/release.yml`) runs daily at 14:00 UTC (or on manual
+  dispatch). If any commit since the last tag touches non-doc files (`.md`, `spec/`, and
+  `tools/` are ignored), it bumps `-rREVISION` in the `.toc`, builds a changelog grouped
+  by conventional-commit type, and creates the `ActionBarMaster-v<version>` tag + GitHub
+  release.
+- **publish** (`publish.yml`) fires when that release is published and uploads the addon
+  zip (excluding `spec/` and `tools/`) to CurseForge, gated on `## X-Curse-Project-ID:`
+  in the `.toc`.
+- **discord** (`discord.yml`) posts a one-line summary to Discord when a PR merges to
+  `main`; its `workflow_dispatch` fires a test notification.
+
+Required repo secrets: `RELEASE_TOKEN` (admin PAT — the version-bump push must bypass the
+protected `main`), `CURSEFORGE_API_TOKEN`, and `DISCORD_WEBHOOK`.
