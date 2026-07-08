@@ -70,6 +70,11 @@ local function CreateWindow()
   end)
   restorePosition(f)
 
+  -- On-screen bar labels live only while the window is shown; hook the frame's
+  -- visibility so every close path (button, Escape, /bars toggle) drives them.
+  f._widget:HookScript("OnShow", function() ns.barOverlay.Show() end)
+  f._widget:HookScript("OnHide", function() ns.barOverlay.Hide() end)
+
   -- ── Column headers ───────────────────────────────────────────────────────
   local profilesHeader = ui.Label:new{
     parent   = f,
@@ -303,6 +308,9 @@ function ns:Open()
     window._barsGrid.Update(ns.Capture())
   end
   window:Show()
+  -- TitleFrame is created shown, so the OnShow hook misses the first open —
+  -- drive the overlay directly here (idempotent with the hook on later shows).
+  ns.barOverlay.Show()
 end
 
 function ns:HideMainWindow()
