@@ -35,6 +35,8 @@ Profiles are encoded into a compact text string so they can be copied, pasted, a
 - **Drag the grip** on any bar row to reorder how bars are displayed.
 - **Dupes** scans the selected profile for the same action placed in more than one slot, with a per-finding Ignore.
 
+While the window is open, each of your on-screen action bars is tagged with its **"Bar 3" / "Class 2"** name — the same name the grid uses — so you can tell at a glance which grid row is which physical bar. The tags disappear when you close the window.
+
 > **Loading replaces, it doesn't merge.** A full profile clears action slots and keybindings that aren't part of it, so the result matches the profile exactly. Untick bars before loading to leave them alone.
 
 ## Minimap button

@@ -34,6 +34,7 @@
     "IsWindowsClient",
 
     "LibNAddOn",
+    "LibStub",
 
     "ACCEPT",
     "CANCEL",
@@ -41,6 +42,7 @@
     "YES",
     "NO",
     "GameFontHighlightSmall",
+    "GameFontNormal",
     "ITEM_QUALITY_COLORS",
 
     "CreateFrame",

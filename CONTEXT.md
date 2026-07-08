@@ -27,6 +27,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 | `barsview_defs.lua` | `BAR_DEFS` (abm ↔ display label) + `ns.GetActiveBarOrder()` from `db.barOrder` + `ns.GetBarLabel(abm)` |
 | `barsview_drag.lua` | `ns.BuildRowDrag(opts)` — phantom row / drop line / catcher drag-to-reorder machinery |
 | `barsview.lua` | `ns.BuildBarsGrid(parent) → { Update(profile?), GetChecked() }` — pooled icon grid preview |
+| `baroverlay.lua` | `ns.barOverlay` (`Show`/`Hide`/`Refresh`) — on-screen "Bar 3"/"Class 2" tags beside each live action bar while the window is open |
 | `window.lua` | Main UI window — wires list, filter, grid, buttons, and static popups together |
 | `window_dialogs.lua` | `ns.BuildSaveDialog`, `ns.BuildExportDialog`, `ns.BuildImportDialog` modal builders |
 | `minimap.lua` | Minimap button via `ui.MinimapButton` (`textures\minimap.png`, `iconFillsButton`): left-click opens, right-click menu, drag to move; `ns.SetMinimapShown`, `/bars minimap`. Also `ns:CompartmentClick` (toggle window) for the toc `AddonCompartmentFunc`/`X-NUI-COMPARTMENT` entry, with `## IconTexture` set to the same PNG |
@@ -214,6 +215,16 @@ Rows and cells are **pooled** (`acquireBarRow` / `acquirePetRow`): created once,
 Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used as `barFilter` on Load) and a **drag handle** with a hamburger grip over the label area. `SetAllChecked(v)` drives the window's **Check All / Uncheck All** button (header row, between the Profiles label and the class filter) — a plain alternating toggle whose label names the next click's action; it does not track individual checkbox changes. Dragging is delegated to `ns.BuildRowDrag` (`barsview_drag.lua`): a phantom row follows the cursor, a drop line marks the target gap, and a full-screen catcher ends the drag from anywhere; `onDrop(from, insertPos)` fires only when the order actually changes, mutates `db.barOrder`, and re-Updates. The pet row is not reorderable.
 
 ---
+
+## Bar Overlay (`baroverlay.lua`)
+
+`ns.barOverlay.Show()` / `Hide()` tag each on-screen action bar with the same label the grid shows, so grid rows map to physical bars. Lifetime is tied to the window frame's visibility via `OnShow`/`OnHide` hooks in `window.lua` (plus an explicit `Show()` in `ns:Open` — `TitleFrame` is created shown, so the first open misses the hook). Purely decorative: reads button state, never writes it, so no taint and no combat guard.
+
+- **Button discovery** is addon-agnostic: `LibStub("LibActionButton-1.0", true):GetAllButtons()` (Bartender/Dominos/ElvUI) plus a Blizzard default-bar name scan (`ActionButton`, `MultiBar*Button`) as fallback. Each button's current paged slot comes from `_state_type`/`_state_action` (LibActionButton) or `.action` (Blizzard).
+- **Grouping**: visible action buttons bucket by abm bar with the same `floor((slot − 1) / 12) + 1` rule as capture; label text is `ns.GetBarLabel(abm)`.
+- **Placement** anchors to the bar's bounding box. **Horizontal** bars anchor the label to the left of the leftmost button, flipping to the right of the rightmost when the bar hugs the **left screen edge** too tightly to fit. **Vertical** bars get a **stacked** label (`stackText`: one char per line, bar number kept whole after a blank line, e.g. `Bar 3` → `B/a/r//3`) placed **above** the top button and centred on the column, flipping **below** the bottom button when there's no room at the top of the screen.
+- **Z-order**: labels parent a `FULLSCREEN_DIALOG`-strata container (frame level 1000) so they sit above the bars and the ABM window, below real tooltips.
+- **Refresh**: while shown, a driver frame re-anchors on `ACTIONBAR_PAGE_CHANGED` / `UPDATE_BONUS_ACTIONBAR` / `UPDATE_OVERRIDE_ACTIONBAR` / `UPDATE_VEHICLE_ACTIONBAR` (paging/stance/skyriding/vehicle swaps). The event refresh is **coalesced onto the next frame** via LibNAddOn `ns:coalesce("baroverlay", 0, Refresh)` (fires 0ms/next-frame after the first event, dropping the rest of the burst) — LibActionButton re-pages its buttons within the same event, so a synchronous read would catch the pre-swap slots (a mount into skyriding would lag one event behind). Labels and their container are pooled — hidden, never recreated.
 
 ## Autosave (`autosave.lua`)
 

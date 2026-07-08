@@ -29,11 +29,11 @@ std = {
     "Mixin", "CopyTable", "IsWindowsClient",
 
     -- addon namespace globals (this addon + LibNAddOn library)
-    "LibNAddOn",
+    "LibNAddOn", "LibStub",
 
     -- UI strings / fonts / colors
     "ACCEPT", "CANCEL", "DELETE", "YES", "NO",
-    "GameFontHighlightSmall", "ITEM_QUALITY_COLORS",
+    "GameFontHighlightSmall", "GameFontNormal", "ITEM_QUALITY_COLORS",
 
     -- frames / widgets / helpers
     "CreateFrame", "CreateAtlasMarkup", "GameTooltip", "UIParent", "UISpecialFrames",
