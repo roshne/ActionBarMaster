@@ -5,6 +5,12 @@ LibNAddOn{
   addOn   = ns,
 }
 
+-- Surface a "Changelog" button in the Action Bar Master settings category,
+-- opening the release history (ns.changelog, from changelog.lua) in the shared
+-- CopyWindow. No parent → a top-level category, since the addon has no other
+-- settings of its own.
+ns:RegisterChangelog()
+
 ---Close `frame` on Escape without letting CloseSpecialWindows see the press —
 ---it hides every visible special frame at once, which would take the main
 ---window down along with the dialog. Frames using this must NOT be `special`.

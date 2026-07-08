@@ -20,6 +20,7 @@ libs\crc32.lua
 libs\racials.lua
 libs\professions.lua
 init.lua
+changelog.lua
 capture.lua
 restore_pass.lua
 restore_slots.lua

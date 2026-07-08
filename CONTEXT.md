@@ -14,7 +14,8 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`) |
+| `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`); `ns:RegisterChangelog()` (LibNAddOn changelog viewer — no parent → auto top-level settings category, since the addon has no other settings) |
+| `changelog.lua` | `ns.changelog` release-history list for the in-game changelog viewer; auto-prepended at release by addon-ci's `release.yml`, excluded from release-change detection |
 | `capture.lua` | `ns.Capture(barFilter?) → profile` — builds profile from current character state; partial shared profiles |
 | `restore.lua` | `ns.Restore(profile, barFilter?)` — orchestrates the restore passes; no-op in combat. Owns the miss/async-item summary state + hooks (`ns.RestoreMiss`, `ns.DeferItemWarn`, the `GET_ITEM_INFO_RECEIVED` retry) |
 | `restore_slots.lua` | `ns.RestoreSlots` (per-slot pickup ladder), `ns.RestoreFlyouts` (flyout pre-pass), `ns.BuildSpellbookMaps` (override + flyout maps) — split from `restore.lua` for the file-size cap; consumes `restore.lua`'s miss/defer hooks |
