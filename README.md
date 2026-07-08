@@ -47,6 +47,10 @@ A round Action Bar Master button sits on the minimap edge:
 
 Hide or show it any time with `/bars minimap`. Even with the button hidden, Action Bar Master is always reachable from the addon-compartment menu at the top of the minimap.
 
+## Changelog
+
+To see what changed in each release without leaving the game, open the game's **Settings → AddOns → Action Bar Master** panel and click **Changelog → View**. The release history opens in a scrollable, copyable window.
+
 ## Slash commands
 
 | Command | Action |
