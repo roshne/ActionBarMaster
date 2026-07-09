@@ -7,6 +7,15 @@ local ns = select(2, ...)
 -- release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r4", notes = [==[
+### Features
+- on-screen bar-name labels while the window is open (#115)
+- in-game changelog viewer via LibNAddOn (#116)
+
+### Maintenance
+- license copyright holder to Roshne (#117)
+
+]==] },
   { version = "12.0.7-r3", notes = [==[
 ### CI
 - add Discord merged-PR notifications + document the release flow (#113)
