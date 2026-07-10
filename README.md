@@ -4,6 +4,8 @@ Save your entire action setup — bars, keybinds, macros, pet bar, and equipment
 
 Great for alts that play the same spec, for rebuilding your bars after a wipe of your settings, or for handing a friend a ready-made layout.
 
+> 🐛 **Found a bug or have a request?** Please report it on **[GitHub Issues](https://github.com/roshne/ActionBarMaster/issues)** — I don't reliably see CurseForge comments, so that's the surest way to reach me and get it fixed.
+
 ## What gets captured
 
 A profile stores everything it takes to rebuild your bars:
