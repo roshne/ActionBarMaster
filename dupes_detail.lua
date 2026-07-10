@@ -18,10 +18,12 @@ local function ensureWindow()
   detail = {}
   detail.rows = {}
 
+  -- Not `special`: like every nested frame in the addon (dupes list, Save/Export/Import/
+  -- Debug, the class filter), Escape is handled by ns.CaptureEscape below — a `special`
+  -- frame routes Escape through CloseSpecialWindows and takes the main window down with it.
   detail.f = ui.TitleFrame:new{
     name     = "ABMDupesDetailWindow",
     title    = "Duplicate Detail",
-    special  = true,
     level    = 610,
     position = { Center = {}, Width = DWIN_W, Height = 180 },
   }
