@@ -97,10 +97,13 @@ local function CreateWindow()
   }
 
   local function OnSelect(p)
-    if not p then f._barsGrid.Update(nil); return end
+    if not p then f._barsGrid.Update(nil); f._barsPreview.Update(nil); return end
     local profile, err = ns.Decode(p.encoded or "")
     if err then ns.Print("Decode error: " .. err) end
+    -- barLayout is stored on the entry (not serialized) — reattach it for the preview.
+    if profile then profile.barLayout = p.barLayout end
     f._barsGrid.Update(profile)
+    f._barsPreview.Update(profile)
   end
 
   local _, refreshList, getSelected, setSelected, setClassFilter = ns.BuildProfileList(listPanel, OnSelect)
@@ -145,6 +148,8 @@ local function CreateWindow()
     },
   }
   f._barsGrid = ns.BuildBarsGrid(barsPanel)
+  -- Read-only real-orientation preview docked to the right of the window (#118).
+  f._barsPreview = ns.BuildBarsPreview(f)
 
   -- ── Dialogs ──────────────────────────────────────────────────────────────
   local saveDialog = ns.BuildSaveDialog(f, function() refreshList() end)
@@ -274,6 +279,7 @@ local function CreateWindow()
         setSelected(nil)
         refreshList()
         f._barsGrid.Update(nil)
+        f._barsPreview.Update(nil)
       end
       f._pendingDelete = nil
     end,
@@ -305,7 +311,9 @@ function ns:Open()
   -- nothing selected: preview the current character's live bars, so the save
   -- checkboxes have rows to act on before any profile is selected
   if not window._getSelected() then
-    window._barsGrid.Update(ns.Capture())
+    local live = ns.Capture()
+    window._barsGrid.Update(live)
+    window._barsPreview.Update(live)
   end
   window:Show()
   -- TitleFrame is created shown, so the OnShow hook misses the first open —

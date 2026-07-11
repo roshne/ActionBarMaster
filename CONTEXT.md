@@ -16,7 +16,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 |---|---|
 | `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`); `ns:RegisterChangelog()` (LibNAddOn changelog viewer — no parent → auto top-level settings category, since the addon has no other settings) |
 | `changelog.lua` | `ns.changelog` release-history list for the in-game changelog viewer; auto-prepended at release by addon-ci's `release.yml`, excluded from release-change detection |
-| `capture.lua` | `ns.Capture(barFilter?) → profile` — builds profile from current character state; partial shared profiles |
+| `capture.lua` | `ns.Capture(barFilter?) → profile` — builds profile from current character state; partial shared profiles. Also captures `profile.barLayout = ns.wow.ReadActionBars()` (real on-screen orientation/enabled + pet + `mainPage`) for the layout preview — stored on the DB entry, **not** serialized (see below) |
 | `restore.lua` | `ns.Restore(profile, barFilter?)` — orchestrates the restore passes; no-op in combat. Owns the miss/async-item summary state + hooks (`ns.RestoreMiss`, `ns.DeferItemWarn`, the `GET_ITEM_INFO_RECEIVED` retry) |
 | `restore_slots.lua` | `ns.RestoreSlots` (per-slot pickup ladder), `ns.RestoreFlyouts` (flyout pre-pass), `ns.BuildSpellbookMaps` (override + flyout maps) — split from `restore.lua` for the file-size cap; consumes `restore.lua`'s miss/defer hooks |
 | `restore_pass.lua` | Helper passes: `ns.RestoreMacrosAndSlots`, `ns.RestoreBindings`, `ns.RestorePetBar`, `ns.ClearUnusedSlots` |
@@ -24,12 +24,13 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 | `autosave.lua` | Auto-saves on `PLAYER_ENTERING_WORLD`, `ACTIVE_TALENT_GROUP_CHANGED`; `ns.AutoSave()` |
 | `profilelist.lua` | `ns.BuildProfileList(parent, onSelect) → scroll, Refresh, GetSelected, SetSelected, SetClassFilter`; pooled rows |
 | `classfilter.lua` | `ns.BuildClassFilter(parent, position, onSelect)` — class dropdown filter widget |
-| `barsicons.lua` | Icon + tooltip resolvers per slot type (`ns._bar_getIcon` / `_getPetIcon` / `_addTooltip` / `_addPetTooltip`) |
+| `barsicons.lua` | Icon/name + tooltip resolvers per slot type (`ns._bar_getIcon` / `_getName` / `_getPetIcon` / `_addTooltip` / `_addPetTooltip`); `_getName` (name-first, mirrors `addTooltip`) feeds the read-only preview's hover text |
 | `barsview_defs.lua` | `BAR_DEFS` (abm ↔ display label) + `ns.GetActiveBarOrder()` from `db.barOrder` + `ns.GetBarLabel(abm)` |
 | `barsview_drag.lua` | `ns.BuildRowDrag(opts)` — phantom row / drop line / catcher drag-to-reorder machinery |
 | `barsview.lua` | `ns.BuildBarsGrid(parent) → { Update(profile?), GetChecked() }` — pooled icon grid preview |
 | `baroverlay.lua` | `ns.barOverlay` (`Show`/`Hide`/`Refresh`) — on-screen "Bar 3"/"Class 2" tags beside each live action bar while the window is open |
-| `window.lua` | Main UI window — wires list, filter, grid, buttons, and static popups together |
+| `barspreview.lua` | `ns.BuildBarsPreview(parent) → { Update }` — read-only **real-orientation layout preview** docked to the right of the window (#118). Hosts LibNUI's shared `ui.BarsPreview` widget with ABM's slot resolvers (`ns._bar_getIcon`/`_getName`/`_getPetIcon`; the resolvers close over the profile's macro array and ignore the widget's macro map). `Update(profile)` renders the selected (or live) profile's captured `barLayout`; hides on nil. The interactive grid (`barsview.lua`) is untouched — this is a separate spatial reference |
+| `window.lua` | Main UI window — wires list, filter, grid, the docked layout preview (`f._barsPreview`), buttons, and static popups together. `OnSelect` reattaches `profile.barLayout = entry.barLayout` after decode (it isn't serialized) and updates both grid + preview |
 | `window_dialogs.lua` | `ns.BuildSaveDialog`, `ns.BuildExportDialog`, `ns.BuildImportDialog` modal builders |
 | `minimap.lua` | Minimap button via `ui.MinimapButton` (`textures\minimap.png`, `iconFillsButton`): left-click opens, right-click menu, drag to move; `ns.SetMinimapShown`, `/bars minimap`. Also `ns:CompartmentClick` (toggle window) for the toc `AddonCompartmentFunc`/`X-NUI-COMPARTMENT` entry, with `## IconTexture` set to the same PNG |
 | `debug.lua` | `/bars debug <sub>` commands; scrollable copyable output window |
@@ -103,6 +104,10 @@ ActionBarMasterDB = {
       encoded  = string,      -- ns.Encode() output
       autosave = bool|nil,    -- true for auto-saved entries
       savedAt  = string|nil,  -- "%Y-%m-%d %H:%M" timestamp, autosave only
+      barLayout = table|nil,  -- ns.wow.ReadActionBars() snapshot (real orientation) for
+                              -- the preview; NOT in `encoded`, so imported/older entries
+                              -- lack it and the preview falls back to a flat layout.
+                              -- Additive field — no DB version bump / migration needed.
     },
     ...
   },
@@ -140,6 +145,9 @@ profile = {
   bars     = { int, ... }|nil, -- PARTIAL profiles only: captured internal bar numbers (1-15).
                                -- Restore touches ONLY these bars (place + clear strays);
                                -- all other bars, bindings, and pet bar are left alone.
+  barLayout = table|nil,       -- ns.wow.ReadActionBars() at capture time: { [bar] =
+                               -- { orientation, numIcons, numRows, enabled }, pet, mainPage }.
+                               -- Preview-only; dropped by Encode (persisted on the DB entry).
 }
 ```
 

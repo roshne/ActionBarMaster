@@ -75,9 +75,11 @@ function ns.BuildSaveDialog(parent, onSaved)
     if existing then
       existing.name, existing.char, existing.class, existing.spec, existing.encoded =
         name, profile.char, class, spec, encoded
+      existing.barLayout = profile.barLayout  -- real layout for the preview (not serialized)
     else
       table.insert(ns.db.profiles, 1, {
         name = name, char = profile.char, class = class, spec = spec, encoded = encoded,
+        barLayout = profile.barLayout,
       })
     end
     onSaved()
