@@ -7,6 +7,11 @@ local ns = select(2, ...)
 -- release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r5", notes = [==[
+### Bug Fixes
+- drop special=true from the detail window (multi-close in combat) (#122)
+
+]==] },
   { version = "12.0.7-r4", notes = [==[
 ### Features
 - on-screen bar-name labels while the window is open (#115)
