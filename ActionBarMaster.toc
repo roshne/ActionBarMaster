@@ -37,6 +37,7 @@ barsview_defs.lua
 barsview_drag.lua
 barsview.lua
 baroverlay.lua
+barspreview.lua
 window_dialogs.lua
 window.lua
 minimap.lua

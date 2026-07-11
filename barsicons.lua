@@ -136,6 +136,40 @@ local function getPetIcon(entry)
   return texture and _G[texture]
 end
 
+-- Display name for a captured slot (the read-only preview's hover tooltip; the
+-- interactive grid uses the richer addTooltip instead). Reuses the same name-first
+-- resolution as addTooltip so the preview matches what the grid shows.
+local function getName(entry, macros)
+  local t = entry.type
+  if t == "spell" or t == "companion" then
+    return GetSpellName(entry.index)
+  elseif t == "racial" then
+    local sid = racialSpellID(entry.index)
+    return sid and GetSpellName(sid)
+  elseif t == "profession" then
+    local sid = profSpellID(entry)
+    return (sid and GetSpellName(sid)) or entry.strindex
+  elseif t == "macro" then
+    for _, m in ipairs(macros) do
+      if m.id == entry.index then return m.name end
+    end
+  elseif t == "flyout" then
+    return (GetFlyoutInfo(entry.index))
+  elseif t == "item" then
+    return C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(entry.index)
+  elseif t == "summonmount" then
+    return (C_MountJournal.GetMountInfoByID(entry.index))
+  elseif t == "summonpet" then
+    return petName(entry.strindex) or "Battle Pet"
+  elseif t == "equipmentset" then
+    local setID = resolveSetID(entry)
+    return (setID and C_EquipmentSet.GetEquipmentSetInfo(setID)) or "Equipment Set"
+  elseif t == "outfit" then
+    local info = resolveOutfit(entry)
+    return info and info.name or "Outfit"
+  end
+end
+
 local function addTooltip(btn, entry, macros)
   btn:SetScript("OnEnter", function()
     GameTooltip:SetOwner(btn._widget, "ANCHOR_TOPRIGHT", -2, 0)
@@ -204,6 +238,7 @@ local function addPetTooltip(btn, entry)
 end
 
 ns._bar_getIcon       = getIcon
+ns._bar_getName       = getName
 ns._bar_getPetIcon    = getPetIcon
 ns._bar_addTooltip    = addTooltip
 ns._bar_addPetTooltip = addPetTooltip

@@ -36,6 +36,7 @@ local function DoAutoSave()
     encoded  = encoded,
     autosave = true,
     savedAt  = date("%Y-%m-%d %H:%M"),
+    barLayout = profile.barLayout,  -- real layout for the preview (not serialized)
   }
 
   -- One autosave per character+spec — update in place if one already exists

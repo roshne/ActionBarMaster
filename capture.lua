@@ -214,6 +214,11 @@ function ns.Capture(barFilter)
   profile.binds    = CaptureBindings()
   profile.macros   = CaptureMacros()
   profile.petslots = (not barFilter or barFilter.pet ~= false) and CapturePetBar() or {}
+  -- Real on-screen layout (orientation/enabled per bar + pet + mainPage), addon-aware
+  -- via LibNAddOn's ns.wow.ReadActionBars(). Drives the read-only layout preview; stored
+  -- on the DB profile entry (not serialized), so shared/exported profiles stay v2 and
+  -- simply fall back to a flat layout when imported elsewhere.
+  profile.barLayout = ns.wow.ReadActionBars()
 
   if barFilter then
     local bars = {}
