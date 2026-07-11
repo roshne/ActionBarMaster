@@ -9,45 +9,15 @@ local ns = select(2, ...)
 local GAP  = 4    -- px between label and the bar edge
 local PAD  = 4    -- px padding inside the label background
 
--- Blizzard default bar button name prefixes, scanned as a fallback when the
--- user isn't running a LibActionButton bar addon (Bartender/Dominos/ElvUI).
-local BLIZZ_BARS = {
-  "ActionButton", "MultiBarBottomLeftButton", "MultiBarBottomRightButton",
-  "MultiBarRightButton", "MultiBarLeftButton",
-  "MultiBar5Button", "MultiBar6Button", "MultiBar7Button",
-}
+-- Button discovery + paged-slot reads are the shared, addon-agnostic (LibActionButton
+-- → Bartender/Dominos/ElvUI + Blizzard fallback) primitives on ns.wow, so this overlay
+-- and LibNAddOn's ns.wow.ReadActionBars() stay one implementation (nazumods/wow#466).
+local collectButtons = ns.wow.collectActionButtons
+local actionSlot     = ns.wow.actionSlotOf
 
 local container  -- high-strata parent for all labels
 local driver     -- event frame; only registered while shown
 local labels = {}  -- pooled label frames
-
--- Current paged action slot for a button, or nil if it isn't an action button.
--- LibActionButton buttons expose _state_type/_state_action; Blizzard buttons
--- carry a plain .action field.
-local function actionSlot(btn)
-  local t = btn._state_type
-  if t == nil then
-    local a = btn.action
-    return type(a) == "number" and a or nil
-  end
-  if t ~= "action" then return nil end
-  local a = btn._state_action
-  return type(a) == "number" and a or nil
-end
-
--- Gather every candidate action button on screen from both sources.
-local function collectButtons(out)
-  local LAB = LibStub and LibStub("LibActionButton-1.0", true)
-  if LAB and LAB.GetAllButtons then
-    for btn in pairs(LAB:GetAllButtons()) do out[#out + 1] = btn end
-  end
-  for _, prefix in ipairs(BLIZZ_BARS) do
-    for i = 1, 12 do
-      local b = _G[prefix .. i]
-      if b then out[#out + 1] = b end
-    end
-  end
-end
 
 local function ensureContainer()
   if container then return end
@@ -147,8 +117,7 @@ end
 local function Refresh()
   if not container or not container:IsShown() then return end
 
-  local buttons = {}
-  collectButtons(buttons)
+  local buttons = collectButtons()
 
   -- group visible action buttons by abm bar (12 slots per bar, matching capture)
   local groups = {}
