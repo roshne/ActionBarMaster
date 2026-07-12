@@ -4,8 +4,10 @@ local rgba = ns.Colors.rgba
 
 -- Chip metrics
 local CHIP_W, CHIP_H, GAP = 40, 24, 4
-local ACC_W = 3
-local CAP_H = 14   -- caption line
+local ACC_W   = 3
+local CAP_H   = 14   -- caption line
+local PER_ROW = 8    -- chips per row (both rows are full)
+local ROW_W   = PER_ROW * CHIP_W + (PER_ROW - 1) * GAP   -- strip width, for centering
 
 -- Included / excluded palette — mirrors the on-screen bar overlay + Warbandeer's
 -- apply strip: a gold wash + gold accent reads as "included", an empty chip with
@@ -43,7 +45,8 @@ local CHIPS = {
 ---action bar plus Pet) that feeds the barFilter used by Save (partial profiles)
 ---and Load. Replaces the old interactive grid's per-row checkboxes. Chips default
 ---to included; hovering a chip highlights the bar it controls in the topographic
----preview (wired via SetHighlighter). Modeled on Warbandeer's BarsApply strip.
+---preview (wired via SetHighlighter). Centered horizontally in `parent`. Modeled
+---on Warbandeer's BarsApply strip.
 ---@param parent table  LibNUI frame
 ---@return { GetChecked: fun(): table, SetAllChecked: fun(v: boolean), SetHighlighter: fun(fn: fun(abm: integer, on: boolean)), Height: fun(): number }
 function ns.BuildBarSelect(parent)
@@ -51,10 +54,12 @@ function ns.BuildBarSelect(parent)
   local chips     = {}
   local highlight = nil   -- (abm, on) highlighter, set via SetHighlighter
 
+  -- Everything anchors to the parent's TOP edge (its horizontal centre), so the
+  -- fixed-width strip stays centered in the panel without measuring it.
   ui.Label:new{
     parent   = parent, fontObj = "GameFontHighlightSmall", color = "muted", wordWrap = false,
-    text     = "Include on Save / Load",
-    position = { TopLeft = { parent, ui.edge.TopLeft, 0, 0 }, Height = CAP_H },
+    justifyH = "CENTER", text = "Include on Save / Load",
+    position = { Top = { parent, ui.edge.Top, 0, 0 }, Width = ROW_W, Height = CAP_H },
   }
 
   -- Flat wash: gold fill + gold accent when included, empty + red accent when excluded.
@@ -70,9 +75,10 @@ function ns.BuildBarSelect(parent)
     end
   end
 
-  local x, y = 0, -(CAP_H + GAP)
+  local startX = -ROW_W / 2
+  local x, y = startX, -(CAP_H + GAP)
   for _, def in ipairs(CHIPS) do
-    if def.nl then x, y = 0, y - CHIP_H - GAP end
+    if def.nl then x, y = startX, y - CHIP_H - GAP end
     local key = def.pet and "pet" or def.abm
     checked[key] = true
 
@@ -80,7 +86,7 @@ function ns.BuildBarSelect(parent)
       parent     = parent,
       glow       = false,
       background = INCL_BG,
-      position   = { TopLeft = { parent, ui.edge.TopLeft, x, y }, Width = CHIP_W, Height = CHIP_H },
+      position   = { TopLeft = { parent, ui.edge.Top, x, y }, Width = CHIP_W, Height = CHIP_H },
     }
     chip._on  = true
     chip._key = key
