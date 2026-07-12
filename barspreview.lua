@@ -1,10 +1,11 @@
 local _, ns = ...
 local ui = ns.ui
 
-local LBL_H  = 14    -- title line
-local SL_H   = 16    -- zoom slider height
-local SL_W   = 160   -- zoom slider width (compact, bottom-left corner)
-local SL_TOP = 16    -- headroom above the slider for its floating caption / readout
+local LBL_H     = 14     -- title line
+-- The preview renders at up to this scale, shrinking below it only when a smaller
+-- window/screen can't fit the whole map. 1.15 (115%) is the tuned in-game size;
+-- the window (window.lua WIN_W) is sized so a full setup hits this cap exactly.
+local MAX_SCALE = 1.15
 
 local GetSpellName = C_Spell and C_Spell.GetSpellName or function(id) return (GetSpellInfo(id)) end
 
@@ -19,15 +20,12 @@ end
 ---LibNUI's `ui.BarsPreview`, using ABM's own slot icon/name resolvers. Which bars
 ---a Save/Load applies to is chosen in the companion strip (`ns.BuildBarSelect`);
 ---this view is the spatial reference, and its bars light up (`Highlight`) as the
----strip's chips are hovered. The topography is **scaled to fit** the viewport
----(so nothing is clipped off-screen) times a persisted user **zoom** multiplier
----(a slider along the bottom, saved in `db.previewScale`). Fills `parent`.
+---strip's chips are hovered. The topography (including right-docked vertical bars,
+---which can push it wider than the panel) is **scaled to fit** the viewport at up
+---to MAX_SCALE, so nothing is clipped off-screen. Fills `parent`.
 ---@param parent table  container frame
 ---@return { Update: fun(profile: table?), Highlight: fun(abm: integer, on: boolean) }
 function ns.BuildBarsPreview(parent)
-  -- Zoom multiplier on top of the auto-fit scale; 1.0 = fit everything in view.
-  local mult = (ns.db and ns.db.previewScale) or 1.0
-
   local title = ui.Label:new{
     parent   = parent, fontObj = "GameFontHighlightSmall", color = "muted", wordWrap = false,
     justifyH = "CENTER",
@@ -38,14 +36,13 @@ function ns.BuildBarsPreview(parent)
     },
   }
 
-  -- Fixed viewport between the title and the zoom slider. The preview is scaled to
-  -- fit inside it, so the clip is only a safety net for the frame or two before the
-  -- first fit (and for a zoom > fit, which the user opted into).
+  -- Fixed viewport below the title. The preview is scaled to fit inside it, so the
+  -- clip is only a safety net for the frame or two before the first fit.
   local stage = ui.Frame:new{
     parent   = parent,
     position = {
       TopLeft     = { parent, ui.edge.TopLeft,     0, -(LBL_H + 4) },
-      BottomRight = { parent, ui.edge.BottomRight, 0, SL_H + SL_TOP + 4 },
+      BottomRight = { parent, ui.edge.BottomRight, 0, 0 },
     },
   }
   stage._widget:SetClipsChildren(true)
@@ -72,34 +69,16 @@ function ns.BuildBarsPreview(parent)
     resolvePetName = petName,
   }
 
-  -- Fit the preview to the stage in both axes (never magnifying the auto-fit past
-  -- 1), then apply the user's zoom multiplier. Re-run on profile or size change.
+  -- Scale the holder to render the preview at MAX_SCALE, shrinking below it only
+  -- when the stage can't fit the whole map. Re-run on profile or size change.
   local function fit()
     local pw, ph = preview:Width(), preview:Height()
     if not pw or not ph or pw < 1 or ph < 1 then return end
     holder:Width(pw); holder:Height(ph)
     local sw, sh = stage:Width(), stage:Height()
     if not sw or not sh or sw < 1 or sh < 1 then return end   -- panel not laid out yet
-    holder._widget:SetScale(math.min(1, sw / pw, sh / ph) * mult)
+    holder._widget:SetScale(math.min(MAX_SCALE, sw / pw, sh / ph))
   end
-
-  ui.Slider:new{
-    parent      = parent,
-    orientation = "HORIZONTAL",
-    min = 0.5, max = 2.5, step = 0.05, value = mult,
-    label       = "Zoom",
-    valueFormat = function(v) return math.floor(v * 100 + 0.5) .. "%" end,
-    OnChange    = function(_, value, userInput)
-      mult = value
-      if userInput and ns.db then ns.db.previewScale = value end
-      fit()
-    end,
-    position = {
-      BottomLeft = { parent, ui.edge.BottomLeft, 4, 0 },
-      Width      = SL_W,
-      Height     = SL_H,
-    },
-  }
 
   local function Update(profile)
     if not profile then
