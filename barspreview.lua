@@ -78,7 +78,10 @@ function ns.BuildBarsPreview(parent)
     holder:Width(pw); holder:Height(ph)
     local sw, sh = stage:Width(), stage:Height()
     if not sw or not sh or sw < 1 or sh < 1 then return end   -- panel not laid out yet
-    holder._widget:SetScale(math.min(1, sw / pw, sh / ph) * ZOOM)
+    local s = math.min(1, sw / pw, sh / ph) * ZOOM
+    holder._widget:SetScale(s)
+    ns.Print(("[fit] stage %.0fx%.0f native %.0fx%.0f -> scale %.2f (wFit %.2f hFit %.2f)")
+      :format(sw, sh, pw, ph, s, sw / pw, sh / ph))
   end
 
   local function Update(profile)
