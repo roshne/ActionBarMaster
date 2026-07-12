@@ -7,6 +7,15 @@ local ns = select(2, ...)
 -- release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r7", notes = [==[
+### Features
+- replace fixed 15x12 grid with topographic view as primary editor (#126)
+- docked real-layout bar preview via ui.BarsPreview (#125)
+
+### Refactoring
+- use shared ns.wow.collectActionButtons/actionSlotOf (#123)
+
+]==] },
   { version = "12.0.7-r5", notes = [==[
 ### Bug Fixes
 - drop special=true from the detail window (multi-close in combat) (#122)
