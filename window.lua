@@ -97,12 +97,11 @@ local function CreateWindow()
   }
 
   local function OnSelect(p)
-    if not p then f._barsGrid.Update(nil); f._barsPreview.Update(nil); return end
+    if not p then f._barsPreview.Update(nil); return end
     local profile, err = ns.Decode(p.encoded or "")
     if err then ns.Print("Decode error: " .. err) end
     -- barLayout is stored on the entry (not serialized) — reattach it for the preview.
     if profile then profile.barLayout = p.barLayout end
-    f._barsGrid.Update(profile)
     f._barsPreview.Update(profile)
   end
 
@@ -121,7 +120,7 @@ local function CreateWindow()
     glow     = false,
     onClick  = function()
       allOn = not allOn
-      f._barsGrid.SetAllChecked(allOn)
+      f._barSelect.SetAllChecked(allOn)
       checkAllBtn:Text(allOn and "Uncheck All" or "Check All")
     end,
     position = {
@@ -139,7 +138,7 @@ local function CreateWindow()
     Height  = ROW_H,
   }, function(key, specOnly) setClassFilter(key, specOnly) end)
 
-  -- ── Right panel (bars icon grid) ─────────────────────────────────────────
+  -- ── Right panel (bar selector + topographic preview) ─────────────────────
   local barsPanel = ui.Frame:new{
     parent   = f,
     position = {
@@ -147,9 +146,23 @@ local function CreateWindow()
       BottomRight = { f, ui.edge.BottomRight, -PAD, PAD + BTN_H + PAD + ROW_H + PAD },
     },
   }
-  f._barsGrid = ns.BuildBarsGrid(barsPanel)
-  -- Read-only real-orientation preview docked to the right of the window (#118).
-  f._barsPreview = ns.BuildBarsPreview(f)
+
+  -- Per-bar include selector (feeds the Save/Load barFilter) across the top.
+  f._barSelect = ns.BuildBarSelect(barsPanel)
+
+  -- Topographic layout preview fills the rest, below the selector (#124: it is
+  -- now the primary bar view — the old fixed 15×12 grid is gone).
+  local previewPanel = ui.Frame:new{
+    parent   = barsPanel,
+    position = {
+      TopLeft     = { barsPanel, ui.edge.TopLeft,     0, -(f._barSelect.Height() + PAD) },
+      BottomRight = { barsPanel, ui.edge.BottomRight, 0, 0 },
+    },
+  }
+  f._barsPreview = ns.BuildBarsPreview(previewPanel)
+
+  -- Hovering a selector chip lights up the bar it controls in the preview.
+  f._barSelect.SetHighlighter(f._barsPreview.Highlight)
 
   -- ── Dialogs ──────────────────────────────────────────────────────────────
   local saveDialog = ns.BuildSaveDialog(f, function() refreshList() end)
@@ -181,11 +194,11 @@ local function CreateWindow()
     {
       label = "Save", x = LX[2],
       fn = function()
-        local checked = f._barsGrid.GetChecked()
-        local total, inc = 0, 0
-        for _, def in ipairs(ns.GetActiveBarOrder()) do
-          total = total + 1
-          if checked[def.abm] ~= false then inc = inc + 1 end
+        local checked = f._barSelect.GetChecked()
+        -- 15 abm bars (slots 1-180, 12 per bar); the pet toggle isn't counted here.
+        local total, inc = 15, 0
+        for abm = 1, total do
+          if checked[abm] ~= false then inc = inc + 1 end
         end
         saveDialog._note:Text(inc == total
           and "Saving all bars (full profile)"
@@ -203,7 +216,7 @@ local function CreateWindow()
         local profile, err = ns.Decode(p.encoded or "")
         if not profile then ns.Print("Load failed: " .. (err or "?")); return end
         f._pendingProfile   = profile
-        f._pendingBarFilter = f._barsGrid.GetChecked()
+        f._pendingBarFilter = f._barSelect.GetChecked()
         StaticPopup_Show("ABM_CONFIRM_IMPORT", p.name)
       end,
     },
@@ -278,7 +291,6 @@ local function CreateWindow()
         end
         setSelected(nil)
         refreshList()
-        f._barsGrid.Update(nil)
         f._barsPreview.Update(nil)
       end
       f._pendingDelete = nil
@@ -308,11 +320,10 @@ end
 function ns:Open()
   if not window then window = CreateWindow() end
   window._refreshList()
-  -- nothing selected: preview the current character's live bars, so the save
-  -- checkboxes have rows to act on before any profile is selected
+  -- nothing selected: preview the current character's live bars so the view isn't
+  -- empty (the bar selector's chips are always present regardless of selection)
   if not window._getSelected() then
     local live = ns.Capture()
-    window._barsGrid.Update(live)
     window._barsPreview.Update(live)
   end
   window:Show()

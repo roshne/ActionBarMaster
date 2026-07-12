@@ -1,7 +1,7 @@
 local _, ns = ...
 local ui = ns.ui
 
-local P, LBL_H, GAP = 8, 14, 6
+local LBL_H = 14
 
 local GetSpellName = C_Spell and C_Spell.GetSpellName or function(id) return (GetSpellInfo(id)) end
 
@@ -11,25 +11,36 @@ local function petName(slot)
   return slot.strindex
 end
 
----Build a read-only "live layout" preview docked to the right of the main window.
----Renders the selected (or live) profile in its real on-screen orientation via
----LibNUI's `ui.BarsPreview`, using ABM's own slot icon/name resolvers. The
----interactive grid is untouched — this is a separate spatial reference.
----@param parent table  the main window frame
----@return { Update: fun(profile: table?) }
+---Build the primary bar view: a read-only **topographic layout preview** that
+---renders the selected (or live) profile in its real on-screen orientation via
+---LibNUI's `ui.BarsPreview`, using ABM's own slot icon/name resolvers. Which bars
+---a Save/Load applies to is chosen in the companion strip (`ns.BuildBarSelect`);
+---this view is the spatial reference, and its bars light up (`Highlight`) as the
+---strip's chips are hovered. Fills `parent`: a title line above a scroll area.
+---@param parent table  container frame
+---@return { Update: fun(profile: table?), Highlight: fun(abm: integer, on: boolean) }
 function ns.BuildBarsPreview(parent)
-  -- Docked to the window's right edge; parented to it so it follows drags and
-  -- hides with it. clamped=false — it deliberately extends past the clamped window.
-  local box = ui.CleanFrame:new{
-    parent   = parent,
-    clamped  = false,
-    position = { TopLeft = { parent, ui.edge.TopRight, GAP, 0 }, Width = 1, Height = 1, Hide = true },
+  local title = ui.Label:new{
+    parent   = parent, fontObj = "GameFontHighlightSmall", color = "muted", wordWrap = false,
+    position = { TopLeft = { parent, ui.edge.TopLeft, 0, 0 }, Height = LBL_H },
   }
 
-  box.title = ui.Label:new{
-    parent   = box, fontObj = "GameFontHighlightSmall", color = "muted", wordWrap = false,
-    position = { TopLeft = { box, ui.edge.TopLeft, P, -P }, Height = LBL_H },
+  -- The condensed topography can be taller than the panel; a scroll frame absorbs
+  -- the overflow (auto-hiding scrollbar when it fits). content sizes to the
+  -- preview's real extent on every Update.
+  local scroll = ui.ScrollFrame:new{
+    parent    = parent,
+    scrollbar = true,
+    position  = {
+      TopLeft     = { parent, ui.edge.TopLeft,     0, -(LBL_H + 4) },
+      BottomRight = { parent, ui.edge.BottomRight, 0, 0 },
+    },
   }
+  local content = ui.Frame:new{
+    parent   = scroll,
+    position = { TopLeft = { scroll, ui.edge.TopLeft, 0, 0 }, Width = 1, Height = 1 },
+  }
+  scroll:Child(content)
 
   -- Current profile's macros (array). The widget passes its own macro MAP to the
   -- resolvers, but ABM's ns._bar_getIcon/_getName scan the array form the addon
@@ -37,8 +48,8 @@ function ns.BuildBarsPreview(parent)
   local macros = {}
 
   local preview = ui.BarsPreview:new{
-    parent   = box,
-    position = { TopLeft = { box, ui.edge.TopLeft, 0, -(P + LBL_H) } },
+    parent   = content,
+    position = { TopLeft = { content, ui.edge.TopLeft, 0, 0 } },
     resolveIcon    = function(slot) return ns._bar_getIcon(slot, macros) end,
     resolveName    = function(slot) return ns._bar_getName(slot, macros) end,
     resolvePetIcon = function(slot) return ns._bar_getPetIcon(slot) end,
@@ -46,16 +57,24 @@ function ns.BuildBarsPreview(parent)
   }
 
   local function Update(profile)
-    if not profile then box:Hide(); return end
+    if not profile then
+      title:Text("")
+      preview:Set(nil)
+      content:Width(1); content:Height(1)
+      scroll:Refresh()
+      return
+    end
     macros = profile.macros or {}
-    box.title:Text((profile.char or "?") .. "  \226\128\148  " .. (profile.spec ~= "" and profile.spec or "shared"))
+    title:Text((profile.char or "?") .. "  \226\128\148  " .. (profile.spec ~= "" and profile.spec or "shared"))
     preview:Set(profile)
-    local w = math.max(preview:Width(), 120)
-    box:Width(w)
-    box.title:Width(w - 2 * P)
-    box:Height(P + LBL_H + preview:Height())
-    box:Show()
+    content:Width(preview:Width())
+    content:Height(preview:Height())
+    scroll:Refresh()
   end
 
-  return { Update = Update }
+  ---Light up (or clear) the preview row for an abm bar — driven by the select
+  ---strip's chip hover. No-op for bars the preview isn't currently showing.
+  local function Highlight(abm, on) preview:HighlightBar(abm, on) end
+
+  return { Update = Update, Highlight = Highlight }
 end

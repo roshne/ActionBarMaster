@@ -9,10 +9,10 @@ local DLG_H    = 140
 local TXTDLG_W = 420
 
 ---Build the Save Profile modal dialog.
----Captures with the grid's checkbox filter: excluding any bar produces a
+---Captures with the bar selector's filter: excluding any bar produces a
 ---partial, class/spec-agnostic "shared" profile (see ns.Capture). Inserts a
 ---new entry into ns.db.profiles and calls onSaved() on confirm.
----@param parent  table  LibNUI frame (the main window; reads parent._barsGrid)
+---@param parent  table  LibNUI frame (the main window; reads parent._barSelect)
 ---@param onSaved fun()  called after a profile is saved (e.g. refresh the list)
 ---@return table  dialog frame (exposes ._nameBox to focus, ._note to describe scope)
 function ns.BuildSaveDialog(parent, onSaved)
@@ -50,7 +50,7 @@ function ns.BuildSaveDialog(parent, onSaved)
   dlg._nameBox = nameBox
 
   -- scope note ("Saving all bars" / "Saving N of M bars — shared");
-  -- text set by the window's Save button from the current checkbox state
+  -- text set by the window's Save button from the current bar-selector state
   dlg._note = ui.Label:new{
     parent   = dlg,
     fontObj  = "GameFontHighlightSmall",
@@ -66,7 +66,7 @@ function ns.BuildSaveDialog(parent, onSaved)
   -- stays valid, cf. #65); otherwise a new entry is FRONT-inserted at index 1,
   -- matching autosave's ordering and the "index 1 = most recent" convention.
   local function commitSave(name, existing)
-    local profile = ns.Capture(parent._barsGrid.GetChecked())
+    local profile = ns.Capture(parent._barSelect.GetChecked())
     local encoded = ns.Encode(profile)
     -- partial captures blank class/spec; store nil so the list treats the
     -- entry as shared (visible to every class, [s] tag)

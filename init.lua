@@ -46,7 +46,11 @@ function ns:MigrateDB()
     db.version  = 1
   end
   if db.version < 2 then
-    -- Seed bar display order from the hardcoded default (abm bar numbers in display order)
+    -- LEGACY (unread since #124): the bar display order used to be user-reorderable
+    -- and stored here; the primary view is now driven by real on-screen topography,
+    -- so nothing reads db.barOrder any more. The seed is kept (not removed) so a
+    -- rollback to an earlier revision in this patch cycle finds its data intact —
+    -- per the non-destructive DB rule. A future /bars cleanup could drop it.
     db.barOrder = { 1, 6, 5, 3, 4, 13, 14, 15, 2, 7, 8, 9, 10, 12, 11 }
     db.version  = 2
   end
