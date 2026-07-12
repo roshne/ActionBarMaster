@@ -1,11 +1,12 @@
 local _, ns = ...
 local ui = ns.ui
 
-local LBL_H     = 14     -- title line
--- The preview renders at up to this scale, shrinking below it only when a smaller
--- window/screen can't fit the whole map. 1.15 (115%) is the tuned in-game size;
--- the window (window.lua WIN_W) is sized so a full setup hits this cap exactly.
-local MAX_SCALE = 1.15
+local LBL_H = 14     -- title line
+-- Fixed zoom: the preview renders at ZOOM × the largest scale that fits the map
+-- natively (≤ 1.0), i.e. 115% of native for a normal window — the tuned in-game
+-- size. The window (window.lua WIN_W) is sized so a full setup fits at this zoom.
+-- (Shrinks proportionally only if native itself doesn't fit a smaller window.)
+local ZOOM = 1.15
 
 local GetSpellName = C_Spell and C_Spell.GetSpellName or function(id) return (GetSpellInfo(id)) end
 
@@ -69,15 +70,15 @@ function ns.BuildBarsPreview(parent)
     resolvePetName = petName,
   }
 
-  -- Scale the holder to render the preview at MAX_SCALE, shrinking below it only
-  -- when the stage can't fit the whole map. Re-run on profile or size change.
+  -- Scale the holder to render the preview at ZOOM × its largest natively-fitting
+  -- scale (fit-to-native capped at 1.0, then × ZOOM). Re-run on profile/size change.
   local function fit()
     local pw, ph = preview:Width(), preview:Height()
     if not pw or not ph or pw < 1 or ph < 1 then return end
     holder:Width(pw); holder:Height(ph)
     local sw, sh = stage:Width(), stage:Height()
     if not sw or not sh or sw < 1 or sh < 1 then return end   -- panel not laid out yet
-    holder._widget:SetScale(math.min(MAX_SCALE, sw / pw, sh / ph))
+    holder._widget:SetScale(math.min(1, sw / pw, sh / ph) * ZOOM)
   end
 
   local function Update(profile)
