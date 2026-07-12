@@ -11,10 +11,12 @@
 local abm = {}
 
 -- Load order matters: serialize.lua captures ns.base64 / ns.crc32 at load.
+-- barlabels.lua is a standalone static label table (no WoW API), safe anywhere.
 local FILES = {
   "libs/base64.lua",
   "libs/crc32.lua",
   "serialize.lua",
+  "barlabels.lua",
 }
 
 -- Pure-Lua 32-bit ops matching WoW's `bit` library (variadic band/bor/bxor).

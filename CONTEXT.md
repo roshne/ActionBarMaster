@@ -14,7 +14,7 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 
 | File | Purpose |
 |---|---|
-| `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`); `ns:RegisterChangelog()` (LibNAddOn changelog viewer — no parent → auto top-level settings category, since the addon has no other settings) |
+| `init.lua` | Addon bootstrap; `ns.CaptureEscape(frame)`; `MigrateDB` (v1: `profiles = {}`, v2: seeds `barOrder`, now legacy/unread — see #124); `ns:RegisterChangelog()` (LibNAddOn changelog viewer — no parent → auto top-level settings category, since the addon has no other settings) |
 | `changelog.lua` | `ns.changelog` release-history list for the in-game changelog viewer; auto-prepended at release by addon-ci's `release.yml`, excluded from release-change detection |
 | `capture.lua` | `ns.Capture(barFilter?) → profile` — builds profile from current character state; partial shared profiles. Also captures `profile.barLayout = ns.wow.ReadActionBars()` (real on-screen orientation/enabled + pet + `mainPage`) for the layout preview — stored on the DB entry, **not** serialized (see below) |
 | `restore.lua` | `ns.Restore(profile, barFilter?)` — orchestrates the restore passes; no-op in combat. Owns the miss/async-item summary state + hooks (`ns.RestoreMiss`, `ns.DeferItemWarn`, the `GET_ITEM_INFO_RECEIVED` retry) |
@@ -24,13 +24,12 @@ WoW runs **Lua 5.1**. All code must be Lua 5.1 compatible — no `goto`/`::label
 | `autosave.lua` | Auto-saves on `PLAYER_ENTERING_WORLD`, `ACTIVE_TALENT_GROUP_CHANGED`; `ns.AutoSave()` |
 | `profilelist.lua` | `ns.BuildProfileList(parent, onSelect) → scroll, Refresh, GetSelected, SetSelected, SetClassFilter`; pooled rows |
 | `classfilter.lua` | `ns.BuildClassFilter(parent, position, onSelect)` — class dropdown filter widget |
-| `barsicons.lua` | Icon/name + tooltip resolvers per slot type (`ns._bar_getIcon` / `_getName` / `_getPetIcon` / `_addTooltip` / `_addPetTooltip`); `_getName` (name-first, mirrors `addTooltip`) feeds the read-only preview's hover text |
-| `barsview_defs.lua` | `BAR_DEFS` (abm ↔ display label) + `ns.GetActiveBarOrder()` from `db.barOrder` + `ns.GetBarLabel(abm)` |
-| `barsview_drag.lua` | `ns.BuildRowDrag(opts)` — phantom row / drop line / catcher drag-to-reorder machinery |
-| `barsview.lua` | `ns.BuildBarsGrid(parent) → { Update(profile?), GetChecked() }` — pooled icon grid preview |
+| `barsicons.lua` | Icon/name + tooltip resolvers per slot type (`ns._bar_getIcon` / `_getName` / `_getPetIcon` / `_addTooltip` / `_addPetTooltip`); `_getName` (name-first, mirrors `addTooltip`) feeds the preview's hover text |
+| `barlabels.lua` | `BAR_DEFS` (abm ↔ display label) + `ns.GetBarLabel(abm)` — names an abm bar the way the UI/overlay do (used by restore warnings, the overlay, the dupe scanner). Bar order is now driven by real topography, so there is no user-configurable order (was `barsview_defs.lua`; `GetActiveBarOrder` dropped) |
+| `barselect.lua` | `ns.BuildBarSelect(parent) → { GetChecked, SetAllChecked, SetHighlighter, Height }` — the per-bar **include selector**: a compact chip grid (`1‑8` / `C1‑C5` / `Bonus` / `Sky` / `Pet`) feeding the Save/Load `barFilter`. Chips default included; hovering one highlights its real bar in the preview. Modeled on Warbandeer's `BarsApply` (#124) |
 | `baroverlay.lua` | `ns.barOverlay` (`Show`/`Hide`/`Refresh`) — on-screen "Bar 3"/"Class 2" tags beside each live action bar while the window is open |
-| `barspreview.lua` | `ns.BuildBarsPreview(parent) → { Update }` — read-only **real-orientation layout preview** docked to the right of the window (#118). Hosts LibNUI's shared `ui.BarsPreview` widget with ABM's slot resolvers (`ns._bar_getIcon`/`_getName`/`_getPetIcon`; the resolvers close over the profile's macro array and ignore the widget's macro map). `Update(profile)` renders the selected (or live) profile's captured `barLayout`; hides on nil. The interactive grid (`barsview.lua`) is untouched — this is a separate spatial reference |
-| `window.lua` | Main UI window — wires list, filter, grid, the docked layout preview (`f._barsPreview`), buttons, and static popups together. `OnSelect` reattaches `profile.barLayout = entry.barLayout` after decode (it isn't serialized) and updates both grid + preview |
+| `barspreview.lua` | `ns.BuildBarsPreview(parent) → { Update, Highlight }` — the **primary bar view** (#124): a read-only condensed-topographic layout of the selected (or live) profile via LibNUI's shared `ui.BarsPreview`, **scaled to fill** the panel (the largest scale fitting both axes, capped at `MAX_SCALE` = 1.75) with ABM's slot resolvers (`ns._bar_getIcon`/`_getName`/`_getPetIcon`; resolvers close over the profile's macro array, ignoring the widget's macro map). `Update(profile)` renders the captured `barLayout` (hides on nil); `Highlight(abm, on)` lights a bar (driven by selector-chip hover) |
+| `window.lua` | Main UI window — wires list, filter, the bar selector (`f._barSelect`), the primary layout preview (`f._barsPreview`), buttons, and static popups together. `OnSelect` reattaches `profile.barLayout = entry.barLayout` after decode (it isn't serialized) and updates the preview |
 | `window_dialogs.lua` | `ns.BuildSaveDialog`, `ns.BuildExportDialog`, `ns.BuildImportDialog` modal builders |
 | `minimap.lua` | Minimap button via `ui.MinimapButton` (`textures\minimap.png`, `iconFillsButton`): left-click opens, right-click menu, drag to move; `ns.SetMinimapShown`, `/bars minimap`. Also `ns:CompartmentClick` (toggle window) for the toc `AddonCompartmentFunc`/`X-NUI-COMPARTMENT` entry, with `## IconTexture` set to the same PNG |
 | `debug.lua` | `/bars debug <sub>` commands; scrollable copyable output window |
@@ -59,9 +58,9 @@ ns.ClearUnusedSlots(slots, barFilter?) -- blank action slots absent from profile
 ns.BuildProfileList(parent, onSelect) -- → scroll, Refresh(), GetSelected(), SetSelected(entry), SetClassFilter(key, specOnly)
                                       -- selection is identity-based: GetSelected/onSelect yield the profile ENTRY (not an index)
 ns.BuildClassFilter(parent, pos, onSelect)  -- class dropdown; calls onSelect(classKey|nil, specOnly)
-ns.BuildBarsGrid(parent)              -- → { Update(profile?), GetChecked(), SetAllChecked(v) } pooled icon grid
-ns.BuildRowDrag(opts)                 -- → { Start(orderIdx, label), Finish(mouseButton) } drag-to-reorder
-ns.GetActiveBarOrder()                -- → ordered { abm, label } defs from db.barOrder
+ns.BuildBarSelect(parent)             -- → { GetChecked(), SetAllChecked(v), SetHighlighter(fn), Height() }
+                                      --   per-bar include chip strip; GetChecked() → { [abm|"pet"] = bool }
+ns.BuildBarsPreview(parent)           -- → { Update(profile?), Highlight(abm, on) } primary topographic preview
 ns.GetBarLabel(abm)                   -- → UI display label for an abm bar number (5 -> "Bar 3")
 ns.BuildSaveDialog(parent, onSaved)   -- → dialog (._nameBox); Save Profile modal
 ns.BuildExportDialog(parent)          -- → dialog (._box); read-only encoded text. Export button shows the SELECTED profile's stored .encoded (shareable as-is), or a live ns.Encode(ns.Capture()) when nothing is selected
@@ -92,7 +91,8 @@ Managed by LibNAddOn via `X-NUI-DB` / `X-NUI-DB-VERSION`.
 ActionBarMasterDB = {
   version   = 2,
   windowPos = { x = number, y = number },  -- saved window position (TOPLEFT anchor)
-  barOrder   = { int, ... },   -- abm bar numbers in display order (drag-to-reorder)
+  barOrder   = { int, ... },   -- LEGACY (unread since #124): was the user's bar
+                               -- display order; kept for rollback safety, never read
   ackedDupes = { [string] = true, ... },  -- lazy-init; key = "profileName|actionKey"; ignored duplicates
   minimap    = { angle = number, hide = bool },  -- lazy-init (minimap.lua, PLAYER_LOGIN); ring angle in degrees
   profiles  = {               -- array; index 1 = most recent
@@ -114,7 +114,7 @@ ActionBarMasterDB = {
 }
 ```
 
-`MigrateDB`: v1 initialises `profiles = {}`; v2 seeds `barOrder` with the hardcoded default display order (kept in sync with `BAR_DEFS` in `barsview_defs.lua`, but deliberately frozen in `init.lua`).
+`MigrateDB`: v1 initialises `profiles = {}`; v2 seeds `barOrder` — now **legacy/unread since #124** (the primary view is driven by real topography). The seed is retained (never removed) so a rollback within the patch cycle finds its data intact, per the non-destructive DB rule.
 
 ---
 
@@ -189,9 +189,9 @@ profile = {
 5. **`RestoreBindings`** — clear-then-apply: clears the character's current key bindings, then applies the profile's + `SaveBindings` — a restore rather than a merge (consistent with `ClearUnusedSlots` for action slots). Scope caveat: capture and clear both cover only `GetBinding`'s key1/key2, so a 3rd+ key bound to a command is neither captured nor cleared. Only runs for full profiles — partial/shared profiles carry no binds.
 6. **`RestorePetBar`** — token/spell pet slots; no-op without an active pet. Re-scans token slots per placement (placing a token swaps slots, staling a once-built map — B4). **Merge-only — does NOT clear unused pet slots** (gap #7 deliberately skipped: most pet-bar buttons are the pet's intrinsic tokens, so blanking "unused" slots risks stripping a different pet's built-in actions).
 
-`barFilter` (`{ [barNum|"pet"] = bool }`, from the grid checkboxes via `GetChecked()`): entries set to `false` are skipped by slot restore and unused-slot clearing.
+`barFilter` (`{ [barNum|"pet"] = bool }`, from the bar selector's chips via `GetChecked()`): entries set to `false` are skipped by slot restore and unused-slot clearing.
 
-**Partial (shared) profiles** (`profile.bars` present): the effective filter is the intersection of the captured-bar set and the caller's barFilter — bars outside the captured set are never touched; bindings are absent by construction (`RestoreBindings` is skipped when the profile has none); the pet bar restores only if captured. Saved from the window with any grid checkbox unchecked; stored with `class`/`spec = nil` in the DB so the list shows them to every character (`[s]` tag, ignores class/spec filters). The window previews the current character's live bars when no profile is selected, so the save checkboxes always have rows to act on.
+**Partial (shared) profiles** (`profile.bars` present): the effective filter is the intersection of the captured-bar set and the caller's barFilter — bars outside the captured set are never touched; bindings are absent by construction (`RestoreBindings` is skipped when the profile has none); the pet bar restores only if captured. Saved from the window with any bar-selector chip excluded; stored with `class`/`spec = nil` in the DB so the list shows them to every character (`[s]` tag, ignores class/spec filters). The window previews the current character's live bars when no profile is selected.
 
 ---
 
@@ -215,19 +215,21 @@ The player's own class is expanded into two rows: `"<Class> - <Spec>"` (current 
 
 ---
 
-## Bars Grid (`barsview.lua` + `barsview_defs.lua` + `barsview_drag.lua`)
+## Bar Selector + Layout Preview (`barselect.lua` + `barspreview.lua`)
 
-`BuildBarsGrid` renders a scrollable grid of icon cells: 15 bars × 12 slots plus an optional Pet row, ordered by `ns.GetActiveBarOrder()` (from `db.barOrder`). Column headers are pinned above the scroll area. `Update(profile)` re-fills rows from profile data; `Update(nil)` clears the grid. Tooltips use `GameTooltip:SetOwner` with `ANCHOR_TOPRIGHT`. Icons resolved per slot type via `barsicons.lua` resolvers.
+The window's right panel is the **primary bar view** (#124, replacing the old fixed 15×12 grid): a per-bar **include selector** across the top over a read-only **topographic layout preview** filling the rest.
 
-Rows and cells are **pooled** (`acquireBarRow` / `acquirePetRow`): created once, re-filled and repositioned on every `Update`, hidden when unused — WoW frames are never garbage-collected, so widgets must not be recreated per refresh. Cell buttons always exist; empty cells hide the icon texture and nil out the tooltip scripts. Handle/checkbox closures read the row's `orderIdx` / `barLabel` / `barKey` fields, which fill updates in place. The profile list in `profilelist.lua` uses the same pattern (`acquireRow`), since its `Refresh` runs on every list click.
+**`ns.BuildBarSelect(parent)`** builds a compact grid of toggle **chips** — one per action bar (`1‑8`, `C1‑C5`, `Bonus`, `Sky`) plus `Pet` — laid out in two rows. Each chip maps a short label to an abm bar number (`barlabels.lua` `BAR_DEFS`; the pet chip maps to the `"pet"` filter key). Chips **default to included** (gold wash + gold accent); clicking excludes (empty + red accent). `GetChecked()` returns `{ [abm | "pet"] = bool }` (explicit `true`/`false`; `false` = exclude) — consumed as the `barFilter` by Save (partial profiles) and Load; because all-`true` still counts 15 bars, `ns.Capture` treats "everything included" as a **full** profile. `SetAllChecked(v)` drives the window's **Check All / Uncheck All** button (header row, between the Profiles label and the class filter). `SetHighlighter(fn)` wires chip hover to the preview's `Highlight(abm, on)`, so hovering a chip lights up the bar it controls. Modeled on Warbandeer's `BarsApply` strip; the abm bar-number space is identical to LibNUI's `ui.BarsPreview` row keys (both `floor((slot-1)/12)+1`), so a chip's abm number *is* the preview bar it highlights.
 
-Each bar row has a per-bar **checkbox** feeding the `GetChecked()` table (used as `barFilter` on Load) and a **drag handle** with a hamburger grip over the label area. `SetAllChecked(v)` drives the window's **Check All / Uncheck All** button (header row, between the Profiles label and the class filter) — a plain alternating toggle whose label names the next click's action; it does not track individual checkbox changes. Dragging is delegated to `ns.BuildRowDrag` (`barsview_drag.lua`): a phantom row follows the cursor, a drop line marks the target gap, and a full-screen catcher ends the drag from anywhere; `onDrop(from, insertPos)` fires only when the order actually changes, mutates `db.barOrder`, and re-Updates. The pet row is not reorderable.
+**`ns.BuildBarsPreview(parent)`** hosts LibNUI's shared `ui.BarsPreview`, **scaled to fit** the panel so the whole topography (including the right-docked vertical bars, which can push it wider than the panel) is always visible without clipping. The scale is `min(stageW/nativeW, stageH/nativeH, MAX_SCALE)` (`MAX_SCALE` = 1.75) applied to an ABM-owned wrapper frame — the shared widget is left untouched — so the map fills the viewport, capped only so a tiny profile doesn't magnify absurdly. The window (`window.lua` `WIN_W`/`WIN_H`) is sized so a full setup fills at a comfortable ~1.2× (tuned in-game against the ~264px width / ~226px height window chrome). A stage clip guards the frame or two before the first fit; the fit re-runs on the panel's `OnSizeChanged` (the first Open updates before the window is shown, so the stage has no size yet then). `Update(profile)` renders the captured `barLayout`; `Update(nil)` hides it. `Highlight(abm, on)` forwards to the widget's `HighlightBar`. This view is **read-only** — a spatial reference; all include/exclude interaction lives in the selector strip.
+
+The pooled row/cell discipline of the old grid now lives inside the shared `ui.BarsPreview` widget (LibNUI). The profile list in `profilelist.lua` still uses its own `acquireRow` pool, since its `Refresh` runs on every list click.
 
 ---
 
 ## Bar Overlay (`baroverlay.lua`)
 
-`ns.barOverlay.Show()` / `Hide()` tag each on-screen action bar with the same label the grid shows, so grid rows map to physical bars. Lifetime is tied to the window frame's visibility via `OnShow`/`OnHide` hooks in `window.lua` (plus an explicit `Show()` in `ns:Open` — `TitleFrame` is created shown, so the first open misses the hook). Purely decorative: reads button state, never writes it, so no taint and no combat guard.
+`ns.barOverlay.Show()` / `Hide()` tag each on-screen action bar with the same label the selector/preview show, so the UI's bars map to physical ones. Lifetime is tied to the window frame's visibility via `OnShow`/`OnHide` hooks in `window.lua` (plus an explicit `Show()` in `ns:Open` — `TitleFrame` is created shown, so the first open misses the hook). Purely decorative: reads button state, never writes it, so no taint and no combat guard.
 
 - **Button discovery** is addon-agnostic and now uses LibNAddOn's shared primitives — `ns.wow.collectActionButtons()` (`LibActionButton-1.0:GetAllButtons()` for Bartender/Dominos/ElvUI + a Blizzard default-bar name scan) and `ns.wow.actionSlotOf(btn)` (`_state_type`/`_state_action` → Blizzard `.action`). These are the same helpers behind `ns.wow.ReadActionBars()`, so the suite has one implementation (nazumods/wow#466); this overlay keeps its own `place()` because it anchors to the actual button frames, which `ReadActionBars` abstracts away.
 - **Grouping**: visible action buttons bucket by abm bar with the same `floor((slot − 1) / 12) + 1` rule as capture; label text is `ns.GetBarLabel(abm)`.
