@@ -1,9 +1,10 @@
 local _, ns = ...
 local ui = ns.ui
 
-local LBL_H  = 14   -- title line
-local SL_H   = 16   -- zoom slider height
-local SL_TOP = 16   -- headroom above the slider for its floating caption / readout
+local LBL_H  = 14    -- title line
+local SL_H   = 16    -- zoom slider height
+local SL_W   = 160   -- zoom slider width (compact, bottom-left corner)
+local SL_TOP = 16    -- headroom above the slider for its floating caption / readout
 
 local GetSpellName = C_Spell and C_Spell.GetSpellName or function(id) return (GetSpellInfo(id)) end
 
@@ -94,9 +95,9 @@ function ns.BuildBarsPreview(parent)
       fit()
     end,
     position = {
-      BottomLeft  = { parent, ui.edge.BottomLeft,  4, 0 },
-      BottomRight = { parent, ui.edge.BottomRight, -4, 0 },
-      Height      = SL_H,
+      BottomLeft = { parent, ui.edge.BottomLeft, 4, 0 },
+      Width      = SL_W,
+      Height     = SL_H,
     },
   }
 
