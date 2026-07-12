@@ -1,12 +1,11 @@
 local _, ns = ...
 local ui = ns.ui
 
--- Wider than the profile list needs: the right panel hosts the topographic
--- preview, which for a full setup is ~1100px wide at the preview's MAX_SCALE
--- (horizontal block + right-docked vertical bars), so the panel must exceed that
--- for the whole map to fit without clipping (#124). Height isn't the limiter.
-local WIN_W    = 1460
-local WIN_H    = 624
+-- Sized generously so the topographic preview (its native map is ~870×320 for a
+-- full setup) fills the right panel at a comfortable ~1.5× without clipping (#124):
+-- the panel is WIN_W - ~264 wide, and the preview's fill scale grows with both.
+local WIN_W    = 1550
+local WIN_H    = 710
 local LIST_W   = 240
 local FILTER_W = 130
 local PAD      = 8
