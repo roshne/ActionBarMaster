@@ -1,7 +1,9 @@
 local _, ns = ...
 local ui = ns.ui
 
-local LBL_H = 14
+local LBL_H  = 14   -- title line
+local SL_H   = 16   -- zoom slider height
+local SL_TOP = 16   -- headroom above the slider for its floating caption / readout
 
 local GetSpellName = C_Spell and C_Spell.GetSpellName or function(id) return (GetSpellInfo(id)) end
 
@@ -16,36 +18,40 @@ end
 ---LibNUI's `ui.BarsPreview`, using ABM's own slot icon/name resolvers. Which bars
 ---a Save/Load applies to is chosen in the companion strip (`ns.BuildBarSelect`);
 ---this view is the spatial reference, and its bars light up (`Highlight`) as the
----strip's chips are hovered. The whole topography (including right-docked vertical
----bars, which can push it wider than the panel) is **scaled to fit** the viewport,
----so nothing is clipped off-screen. Fills `parent`: a title line above the view.
+---strip's chips are hovered. The topography is **scaled to fit** the viewport
+---(so nothing is clipped off-screen) times a persisted user **zoom** multiplier
+---(a slider along the bottom, saved in `db.previewScale`). Fills `parent`.
 ---@param parent table  container frame
 ---@return { Update: fun(profile: table?), Highlight: fun(abm: integer, on: boolean) }
 function ns.BuildBarsPreview(parent)
+  -- Zoom multiplier on top of the auto-fit scale; 1.0 = fit everything in view.
+  local mult = (ns.db and ns.db.previewScale) or 1.0
+
   local title = ui.Label:new{
     parent   = parent, fontObj = "GameFontHighlightSmall", color = "muted", wordWrap = false,
     justifyH = "CENTER",
     position = {
-      TopLeft = { parent, ui.edge.TopLeft,  0, 0 },
-      Right   = { parent, ui.edge.Right,    0, 0 },
+      TopLeft = { parent, ui.edge.TopLeft, 0, 0 },
+      Right   = { parent, ui.edge.Right,   0, 0 },
       Height  = LBL_H,
     },
   }
 
-  -- Fixed viewport below the title. The preview is scaled to fit inside it, so a
-  -- clip guard is only a safety net for the frame or two before the first fit.
+  -- Fixed viewport between the title and the zoom slider. The preview is scaled to
+  -- fit inside it, so the clip is only a safety net for the frame or two before the
+  -- first fit (and for a zoom > fit, which the user opted into).
   local stage = ui.Frame:new{
     parent   = parent,
     position = {
       TopLeft     = { parent, ui.edge.TopLeft,     0, -(LBL_H + 4) },
-      BottomRight = { parent, ui.edge.BottomRight, 0, 0 },
+      BottomRight = { parent, ui.edge.BottomRight, 0, SL_H + SL_TOP + 4 },
     },
   }
   stage._widget:SetClipsChildren(true)
 
   -- ABM-owned wrapper we scale (leaving the shared ui.BarsPreview untouched). It
   -- is sized to the preview's real extent and anchored top-centre in the stage, so
-  -- scaling it down keeps the map centered.
+  -- scaling it keeps the map centered.
   local holder = ui.Frame:new{
     parent   = stage,
     position = { Top = { stage, ui.edge.Top, 0, 0 }, Width = 1, Height = 1 },
@@ -65,16 +71,34 @@ function ns.BuildBarsPreview(parent)
     resolvePetName = petName,
   }
 
-  -- Scale the holder so the preview fits the stage in both axes (never magnifying
-  -- past 1). Re-run whenever the profile or the stage size changes.
+  -- Fit the preview to the stage in both axes (never magnifying the auto-fit past
+  -- 1), then apply the user's zoom multiplier. Re-run on profile or size change.
   local function fit()
     local pw, ph = preview:Width(), preview:Height()
     if not pw or not ph or pw < 1 or ph < 1 then return end
     holder:Width(pw); holder:Height(ph)
     local sw, sh = stage:Width(), stage:Height()
     if not sw or not sh or sw < 1 or sh < 1 then return end   -- panel not laid out yet
-    holder._widget:SetScale(math.min(1, sw / pw, sh / ph))
+    holder._widget:SetScale(math.min(1, sw / pw, sh / ph) * mult)
   end
+
+  ui.Slider:new{
+    parent      = parent,
+    orientation = "HORIZONTAL",
+    min = 0.5, max = 2.5, step = 0.05, value = mult,
+    label       = "Zoom",
+    valueFormat = function(v) return math.floor(v * 100 + 0.5) .. "%" end,
+    OnChange    = function(_, value, userInput)
+      mult = value
+      if userInput and ns.db then ns.db.previewScale = value end
+      fit()
+    end,
+    position = {
+      BottomLeft  = { parent, ui.edge.BottomLeft,  4, 0 },
+      BottomRight = { parent, ui.edge.BottomRight, -4, 0 },
+      Height      = SL_H,
+    },
+  }
 
   local function Update(profile)
     if not profile then
