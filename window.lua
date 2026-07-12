@@ -1,11 +1,11 @@
 local _, ns = ...
 local ui = ns.ui
 
--- Sized generously so the topographic preview (its native map is ~870×320 for a
--- full setup) fills the right panel at a comfortable ~1.5× without clipping (#124):
--- the panel is WIN_W - ~264 wide, and the preview's fill scale grows with both.
-local WIN_W    = 1550
-local WIN_H    = 710
+-- Sized so the topographic preview (its native map is ~870×320 for a full setup)
+-- fills the right panel at a comfortable size without clipping (#124): the panel
+-- is WIN_W - ~264 wide, and the preview's fill scale grows with both dimensions.
+local WIN_W    = 1395
+local WIN_H    = 640
 local LIST_W   = 240
 local FILTER_W = 130
 local PAD      = 8
