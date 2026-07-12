@@ -1,7 +1,11 @@
 local _, ns = ...
 local ui = ns.ui
 
-local WIN_W    = 828
+-- Wider than the profile list needs: the right panel hosts the topographic
+-- preview, which is often ~780px wide (horizontal block + right-docked vertical
+-- bars), so the panel must exceed that for the preview to fit at ~100% zoom
+-- (#124). Height is unchanged — the preview is width-, not height-, limited.
+local WIN_W    = 1100
 local WIN_H    = 624
 local LIST_W   = 240
 local FILTER_W = 130
