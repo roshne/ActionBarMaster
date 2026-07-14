@@ -67,7 +67,8 @@ To see what changed in each release without leaving the game, open the game's **
 
 ## Dependencies
 
-Requires **LibNAddOn** and **LibNUI**.
+- **LibNAddOn**
+- **LibNUI**
 
 ## Saved data
 
