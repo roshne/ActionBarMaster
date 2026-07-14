@@ -1,0 +1,13 @@
+name: push-notify
+
+# Post one Discord notification per push to main (as Github-Repo-Updates), via the
+# shared reusable workflow. Replaces the native push webhook, which double-posted
+# (branch push + squash-merge) and rendered as "GitHub". See roshne/Tooling#111.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    uses: roshne/addon-ci/.github/workflows/push-notify.yml@main
+    secrets: inherit
