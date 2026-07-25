@@ -120,6 +120,20 @@ function ns.RestoreSlots(slots, overrides, flyouts, race, class)
   for _, s in ipairs(slots) do
     local slot = slotLabel(s.id)
     local ok, err = pcall(function()
+      -- Neither type carries anything we can re-place (capture stores the type only),
+      -- so the profile's wanted state for the slot is EMPTY — blank it, as documented.
+      -- Handled before the "already matches" early-out below, which would otherwise
+      -- leave a pre-existing petaction sitting in the slot, and with an explicit return
+      -- so the place/blank tail can't PlaceAction the picked-up action straight back
+      -- into the same slot — the round-trip this used to do (#131).
+      if s.type == "petaction" or s.type == "futurespell" then
+        PickupAction(s.id)
+        ClearCursor()
+        ns.RestoreMiss(slot .. (s.type == "petaction" and "Pet action" or "Unlearned spell")
+          .. " can't be restored")
+        return
+      end
+
       local curType, curIndex = GetActionInfo(s.id)
       if curType == s.type and curIndex == (s.index or s.strindex) then return end
 
@@ -264,8 +278,6 @@ function ns.RestoreSlots(slots, overrides, flyouts, race, class)
               .. (s.strindex and ('[' .. s.strindex .. ']') or ('#' .. tostring(s.index))))
           end
         end
-      elseif s.type == "petaction" or s.type == "futurespell" then
-        PickupAction(s.id) -- clear
       end
 
       if GetCursorInfo() then

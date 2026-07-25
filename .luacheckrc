@@ -7,12 +7,18 @@ max_comment_line_length = 500
 -- -luarocks); keep `luacheck .` off those trees.
 exclude_files = {".lua", ".luarocks", ".install"}
 
--- Specs run under busted and load the addon files via loadfile, stubbing a
--- couple of WoW globals.
+-- Specs run under busted and load the addon files via loadfile, stubbing WoW
+-- globals: the `bit`/IsWindowsClient pair serialize.lua needs at load time, plus
+-- the pickup/place surface abm.actionbars() fakes for the restore specs.
 files["spec/**/*.lua"] = {
   std = "+busted",
   read_globals = {"loadfile", "assert", "require", "select", "math", "ipairs", "table", "string"},
-  globals = {"bit", "IsWindowsClient", "_G.bit", "_G.IsWindowsClient"},
+  globals = {
+    "bit", "IsWindowsClient", "_G.bit", "_G.IsWindowsClient",
+    "GetActionInfo", "PickupAction", "PlaceAction", "GetCursorInfo", "ClearCursor", "PickupSpell",
+    "_G.GetActionInfo", "_G.PickupAction", "_G.PlaceAction", "_G.GetCursorInfo",
+    "_G.ClearCursor", "_G.PickupSpell",
+  },
 }
 
 std = {
