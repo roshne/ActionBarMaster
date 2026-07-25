@@ -49,15 +49,59 @@ local function makeBit()
   }
 end
 
+---@param extra table? additional addon files to load after the pure-Lua set
 ---@return table ns a fresh Action Bar Master namespace with the pure-Lua modules loaded
-function abm.load()
+function abm.load(extra)
   _G.bit = _G.bit or makeBit()
   _G.IsWindowsClient = _G.IsWindowsClient or function() return false end
   local ns = {}
   for _, f in ipairs(FILES) do
     assert(loadfile(f))("ActionBarMaster", ns)
   end
+  for _, f in ipairs(extra or {}) do
+    assert(loadfile(f))("ActionBarMaster", ns)
+  end
   return ns
+end
+
+---Install a fake action bar over the WoW pickup/place globals.
+---
+---Call this BEFORE abm.load(): restore_slots.lua captures PickupSpell (and friends)
+---into file-local upvalues at load time, so a stub installed afterwards is never seen.
+---The slot globals (GetActionInfo/PickupAction/PlaceAction) are looked up per call and
+---so are order-independent, but keeping one call site avoids the distinction mattering.
+---
+---Both PickupAction and PlaceAction SWAP slot and cursor, as they do in game — that
+---swap is exactly what turned "pick the action up to clear it" into a round-trip (#131),
+---so the harness has to model it rather than treat pickup as a plain removal.
+---@param initial table? { [slotID] = { type, index } } starting bar contents
+---@return table bars { slots = table, cursor = table|nil }
+function abm.actionbars(initial)
+  local bars = { slots = {}, cursor = nil }
+  for id, action in pairs(initial or {}) do
+    bars.slots[id] = { action[1], action[2] }
+  end
+
+  local function swap(id)
+    bars.slots[id], bars.cursor = bars.cursor, bars.slots[id]
+  end
+
+  _G.GetActionInfo = function(id)
+    local a = bars.slots[id]
+    if not a then return nil end
+    return a[1], a[2]
+  end
+  _G.PickupAction  = function(id) swap(id) end
+  _G.PlaceAction   = function(id) swap(id) end
+  _G.GetCursorInfo = function()
+    local c = bars.cursor
+    if not c then return nil end
+    return c[1], c[2]
+  end
+  _G.ClearCursor  = function() bars.cursor = nil end
+  _G.PickupSpell  = function(id) bars.cursor = { "spell", id } end
+
+  return bars
 end
 
 return abm
