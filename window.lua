@@ -112,19 +112,17 @@ local function CreateWindow()
   f._refreshList = refreshList
   f._getSelected = getSelected
 
-  -- Check All / Uncheck All: plain alternating toggle for the grid row
-  -- checkboxes; the label always names the next click's action
+  -- Check All / Uncheck All for the selector chips. The label is DERIVED from the
+  -- chips (SetOnChanged below keeps it live), never from a private flag here — a
+  -- flag desyncs the moment the user ticks chips individually, costing a dead click.
   local CHECKALL_W = 90
-  local allOn = true  -- checkboxes default to checked
   local checkAllBtn
   checkAllBtn = ui.Button:new{
     parent   = f,
     template = "UIPanelButtonTemplate",
     glow     = false,
     onClick  = function()
-      allOn = not allOn
-      f._barSelect.SetAllChecked(allOn)
-      checkAllBtn:Text(allOn and "Uncheck All" or "Check All")
+      f._barSelect.SetAllChecked(not f._barSelect.AllChecked())
     end,
     position = {
       TopLeft = { f.titlebar, ui.edge.BottomLeft, PAD + LIST_W + PAD, -PAD },
@@ -152,6 +150,12 @@ local function CreateWindow()
 
   -- Per-bar include selector (feeds the Save/Load barFilter) across the top.
   f._barSelect = ns.BuildBarSelect(barsPanel)
+
+  -- Keep the button's label naming the next click's action however the chip state
+  -- moved — the button itself, or the user ticking chips one at a time.
+  f._barSelect.SetOnChanged(function(all)
+    checkAllBtn:Text(all and "Uncheck All" or "Check All")
+  end)
 
   -- Topographic layout preview fills the rest, below the selector (#124: it is
   -- now the primary bar view — the old fixed 15×12 grid is gone).

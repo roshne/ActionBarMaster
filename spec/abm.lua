@@ -50,18 +50,74 @@ local function makeBit()
 end
 
 ---@param extra table? additional addon files to load after the pure-Lua set
+---@param nui table? LibNUI double from abm.nui(), installed as ns.ui / ns.Colors
+---        BEFORE `extra` loads (widget-building files capture them at load time)
 ---@return table ns a fresh Action Bar Master namespace with the pure-Lua modules loaded
-function abm.load(extra)
+function abm.load(extra, nui)
   _G.bit = _G.bit or makeBit()
   _G.IsWindowsClient = _G.IsWindowsClient or function() return false end
   local ns = {}
   for _, f in ipairs(FILES) do
     assert(loadfile(f))("ActionBarMaster", ns)
   end
+  if nui then
+    ns.ui, ns.Colors = nui.ui, nui.Colors
+  end
   for _, f in ipairs(extra or {}) do
     assert(loadfile(f))("ActionBarMaster", ns)
   end
   return ns
+end
+
+---Minimal stand-in for the LibNUI widget surface, enough to let a pure-logic
+---builder (barselect.lua) construct its frames headlessly. Widgets are inert
+---tables whose setters no-op and chain; every Button is recorded in `buttons` in
+---creation order, so a spec can drive `chip.OnClick()` the way the real widget's
+---OnClick script does. Deliberately thin — it doubles only what barselect.lua
+---touches, so anything relying on real layout/rendering stays in-game-tested.
+---@return table nui { ui = table, Colors = table, buttons = table }
+function abm.nui()
+  local nui = { buttons = {} }
+
+  local function widget(init)
+    local w = {}
+    for k, v in pairs(init or {}) do w[k] = v end
+    w._widget = setmetatable({}, { __index = function() return function() end end })
+    w.Color     = function(self) return self end
+    w.TextAlign = function(self) return self end
+    w.Text      = function(self, t)
+      if t == nil then return self._text end
+      self._text = t
+      return self
+    end
+    return w
+  end
+
+  local function class(onNew)
+    local c = {}
+    c.new = function(_, init)
+      local w = widget(init)
+      if onNew then onNew(w) end
+      return w
+    end
+    return c
+  end
+
+  nui.ui = {
+    Label   = class(),
+    Texture = class(),
+    Button  = class(function(w)
+      -- LibNUI turns the `background` colour arg into a texture on the widget
+      w.background = widget()
+      nui.buttons[#nui.buttons + 1] = w
+    end),
+    -- Anchor/layer enums are only ever passed straight back into position tables.
+    edge  = setmetatable({}, { __index = function(_, k) return k end }),
+    layer = setmetatable({}, { __index = function(_, k) return k end }),
+  }
+  nui.Colors = { rgba = function(r, g, b, a) return { r, g, b, a } end }
+
+  return nui
 end
 
 ---Install a fake action bar over the WoW pickup/place globals.
