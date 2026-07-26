@@ -55,7 +55,7 @@ local function slotLabel(id)
   local bar = math.floor((id - 1) / 12) + 1
   local col = ((id - 1) % 12) + 1
   -- UI display label ("Bar 3", "Bonus", "Class 1", ...), not the internal bar
-  -- number — internal bars 2-6 carry different display names in the grid
+  -- number — internal bars 2-6 carry different display names in the UI
   return ns.GetBarLabel(bar) .. " slot " .. col .. ": "
 end
 

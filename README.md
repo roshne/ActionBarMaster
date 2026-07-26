@@ -34,10 +34,10 @@ Profiles are encoded into a compact text string so they can be copied, pasted, a
 
 - **Profile list** on the left, filtered by class/spec (defaults to your current class). Autosaves are tagged; all-class shared profiles show an `[s]`.
 - **Bar selector** across the top of the right panel is a strip of chips — one per action bar, plus **Pet**. Every chip starts included; click one to exclude that bar, controlling what a Save captures or a Load restores, or use **Check All / Uncheck All**.
-- **Layout preview** below the chips shows your bars in their real on-screen arrangement — a read-only map for telling which bar is which. Hover a chip to highlight the bar it controls.
-- **Dupes** scans the selected profile for the same action placed in more than one slot, with a per-finding Ignore.
+- **Layout preview** below the chips shows your bars in their real on-screen arrangement — a read-only map for telling which bar is which. Hover a chip to highlight the bar it controls (the **Pet** chip has no row in the preview, so it highlights nothing).
+- **Dupes** scans **every** saved profile — not just the selected one — for the same action placed in more than one slot, with a per-finding Ignore. It opens filtered to your current character and spec; widen either filter from the buttons in its header to see the rest.
 
-While the window is open, each of your on-screen action bars is tagged with its **"Bar 3" / "Class 2"** name — the same name the selector and preview use — so you can tell at a glance which chip maps to which physical bar. The tags disappear when you close the window.
+While the window is open, each of your on-screen action bars is tagged with its **"Bar 3" / "Class 2"** name, matching the labels down the side of the preview, so you can tell at a glance which physical bar is which. The chips use the short form of those names — `3`, `C2`, `Sky` (the skyriding bar, tagged **Skyriding** on screen). The tags disappear when you close the window.
 
 > **Loading replaces, it doesn't merge.** A full profile clears action slots and keybindings that aren't part of it, so the result matches the profile exactly. Untick bars before loading to leave them alone.
 
@@ -72,4 +72,4 @@ To see what changed in each release without leaving the game, open the game's **
 
 ## Saved data
 
-Everything is stored account-wide in `ActionBarMasterDB`: your profiles, the window position, and the minimap-button state. Profiles are visible to every character on the account (filtered in the list by class).
+Everything is stored account-wide in `ActionBarMasterDB`: your profiles, the window position, the minimap-button state, and the duplicates you've marked **Ignore** in the Dupes window. Profiles are visible to every character on the account (filtered in the list by class).

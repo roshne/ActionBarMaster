@@ -2,8 +2,8 @@
 local ns = select(2, ...)
 
 -- On-screen bar labels: while the main window is open, tag each visible action
--- bar with the same "Bar 3" / "Class 2" name the grid shows, so the grid rows
--- can be matched to the physical bars on screen. Purely a decorative overlay —
+-- bar with the same "Bar 3" / "Class 2" name the layout preview shows, so the
+-- window's bars can be matched to the physical ones. Purely a decorative overlay —
 -- reads button state, never writes it (no taint), and lives only while shown.
 
 local GAP  = 4    -- px between label and the bar edge
