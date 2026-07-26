@@ -48,11 +48,12 @@ local CHIPS = {
 ---preview (wired via SetHighlighter). Centered horizontally in `parent`. Modeled
 ---on Warbandeer's BarsApply strip.
 ---@param parent table  LibNUI frame
----@return { GetChecked: fun(): table, SetAllChecked: fun(v: boolean), SetHighlighter: fun(fn: fun(abm: integer, on: boolean)), Height: fun(): number }
+---@return { GetChecked: fun(): table, AllChecked: fun(): boolean, SetAllChecked: fun(v: boolean), SetOnChanged: fun(fn: fun(all: boolean)), SetHighlighter: fun(fn: fun(abm: integer, on: boolean)), Height: fun(): number }
 function ns.BuildBarSelect(parent)
   local checked   = {}    -- [abm | "pet"] = bool (explicit; false = exclude)
   local chips     = {}
   local highlight = nil   -- (abm, on) highlighter, set via SetHighlighter
+  local onChanged = nil   -- (all) callback after any chip-state change, set via SetOnChanged
 
   -- Everything anchors to the parent's TOP edge (its horizontal centre), so the
   -- fixed-width strip stays centered in the panel without measuring it.
@@ -73,6 +74,20 @@ function ns.BuildBarSelect(parent)
       chip.accent:Color(ACC_OFF)
       chip.label:Color("muted")
     end
+  end
+
+  -- True only while every chip is included. The window's Check All / Uncheck All
+  -- button derives its label from this (plus the onChanged ping below) rather than
+  -- keeping its own alternating flag, which individual chip clicks would desync.
+  local function allChecked()
+    for _, chip in ipairs(chips) do
+      if not chip._on then return false end
+    end
+    return true
+  end
+
+  local function notify()
+    if onChanged then onChanged(allChecked()) end
   end
 
   local startX = -ROW_W / 2
@@ -105,6 +120,7 @@ function ns.BuildBarSelect(parent)
       chip._on = not chip._on
       checked[key] = chip._on
       paint(chip)
+      notify()
     end
     -- Hover: lift the chip and light up the bar it controls in the preview so the
     -- mapping from chip to real bar is visible. The pet chip has no preview bar.
@@ -131,11 +147,21 @@ function ns.BuildBarSelect(parent)
       checked[chip._key] = v
       paint(chip)
     end
+    notify()
   end
 
   return {
-    GetChecked     = function() return checked end,
+    -- A SNAPSHOT, not the live table: callers hold the filter across an async
+    -- confirmation popup (window.lua's Load), and chip clicks behind that popup
+    -- must not retroactively widen a restore the user already committed to.
+    GetChecked = function()
+      local snapshot = {}
+      for k, v in pairs(checked) do snapshot[k] = v end
+      return snapshot
+    end,
+    AllChecked     = allChecked,
     SetAllChecked  = SetAllChecked,
+    SetOnChanged   = function(fn) onChanged = fn end,
     SetHighlighter = function(fn) highlight = fn end,
     Height         = function() return totalH end,
   }

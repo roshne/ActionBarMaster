@@ -18,7 +18,7 @@ end
 
 -- Resolve a captured equipment-set slot to a live set ID by stored NAME (identity)
 -- first, falling back to the captured list position for pre-identity profiles — the same
--- name-first resolution restore.lua uses, so the grid preview matches what restore places.
+-- name-first resolution restore.lua uses, so the preview matches what restore places.
 local function resolveSetID(entry)
   local ids = C_EquipmentSet and C_EquipmentSet.GetEquipmentSetIDs()
   if not ids then return nil end
@@ -53,7 +53,7 @@ end
 
 -- Racial entries store the ORDINAL in the racial spell list, not a spell ID.
 -- Resolve against the viewing character's race/class — same as restore does —
--- so the grid shows what a Load would actually place on this character.
+-- so the preview shows what a Load would actually place on this character.
 local function racialSpellID(ordinal)
   local _, race  = UnitRace("player")
   local _, class = UnitClass("player")
@@ -136,9 +136,9 @@ local function getPetIcon(entry)
   return texture and _G[texture]
 end
 
--- Display name for a captured slot (the read-only preview's hover tooltip; the
--- interactive grid uses the richer addTooltip instead). Reuses the same name-first
--- resolution as addTooltip so the preview matches what the grid shows.
+-- Display name for a captured slot — the read-only preview's hover text, resolved
+-- name-first (stored identity, then captured list position) so the preview names
+-- what a Load would actually place on this character.
 local function getName(entry, macros)
   local t = entry.type
   if t == "spell" or t == "companion" then
@@ -170,75 +170,6 @@ local function getName(entry, macros)
   end
 end
 
-local function addTooltip(btn, entry, macros)
-  btn:SetScript("OnEnter", function()
-    GameTooltip:SetOwner(btn._widget, "ANCHOR_TOPRIGHT", -2, 0)
-    local t = entry.type
-    if t == "spell" then
-      -- guard invalid IDs (a captured spell whose ID churned out of existence):
-      -- SetSpellByID on an unknown ID leaves the tooltip blank/erroring
-      if GetSpellName(entry.index) then GameTooltip:SetSpellByID(entry.index)
-      else GameTooltip:AddLine("Unknown spell #" .. tostring(entry.index), 1, 1, 1) end
-    elseif t == "racial" then
-      local sid = racialSpellID(entry.index)
-      if sid then GameTooltip:SetSpellByID(sid)
-      else GameTooltip:AddLine("Racial #" .. tostring(entry.index), 1, 1, 1) end
-    elseif t == "profession" then
-      local sid = profSpellID(entry)
-      if sid then GameTooltip:SetSpellByID(sid)
-      else GameTooltip:AddLine(entry.strindex or "?", 1, 1, 1) end
-    elseif t == "macro" then
-      for _, m in ipairs(macros) do
-        if m.id == entry.index then
-          GameTooltip:AddLine(m.name or "?", 1, 1, 1); break
-        end
-      end
-    elseif t == "flyout" then
-      local name = GetFlyoutInfo(entry.index)
-      GameTooltip:AddLine(name or "Flyout", 1, 1, 1)
-    elseif t == "item" then
-      GameTooltip:SetHyperlink("item:" .. entry.index)
-    elseif t == "summonmount" then
-      local _, spellID = C_MountJournal.GetMountInfoByID(entry.index)
-      if spellID then GameTooltip:SetSpellByID(spellID) end
-    elseif t == "companion" then
-      if GetSpellName(entry.index) then GameTooltip:SetSpellByID(entry.index)
-      else GameTooltip:AddLine("Companion #" .. tostring(entry.index), 1, 1, 1) end
-    elseif t == "summonpet" then
-      GameTooltip:AddLine(petName(entry.strindex) or "Battle pet (not in collection)", 1, 1, 1)
-    elseif t == "equipmentset" then
-      local setID = resolveSetID(entry)
-      local name  = setID and C_EquipmentSet.GetEquipmentSetInfo(setID) or "Equipment Set"
-      GameTooltip:AddLine(name, 1, 1, 1)
-    elseif t == "outfit" then
-      local info = resolveOutfit(entry)
-      GameTooltip:AddLine(info and info.name or "Outfit", 1, 1, 1)
-    end
-    GameTooltip:Show()
-  end)
-  btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-end
-
-local function addPetTooltip(btn, entry)
-  btn:SetScript("OnEnter", function()
-    GameTooltip:SetOwner(btn._widget, "ANCHOR_TOPRIGHT", -2, 0)
-    if entry.type == "spell" then
-      GameTooltip:SetSpellByID(entry.index)
-    else
-      local _, _, _, _, _, _, spellID = GetPetActionInfo(entry.id)
-      if spellID and spellID > 0 then
-        GameTooltip:SetSpellByID(spellID)
-      elseif entry.strindex then
-        GameTooltip:AddLine(entry.strindex, 1, 1, 1)
-      end
-    end
-    GameTooltip:Show()
-  end)
-  btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-end
-
 ns._bar_getIcon       = getIcon
 ns._bar_getName       = getName
 ns._bar_getPetIcon    = getPetIcon
-ns._bar_addTooltip    = addTooltip
-ns._bar_addPetTooltip = addPetTooltip
