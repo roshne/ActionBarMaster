@@ -18,7 +18,9 @@ describe("ns.GetBarLabel", function()
       [13] = "Bar 6", [14] = "Bar 7", [15] = "Bar 8",
       [2] = "Bonus",
       [7] = "Class 1", [8] = "Class 2", [9] = "Class 3", [10] = "Class 4", [12] = "Class 5",
-      [11] = "Skyriding",
+      -- short form deliberately: it has to match the preview row and the chip,
+      -- neither of which can hold "Skyriding" (LibNUI label column / 40px chip)
+      [11] = "Sky",
     }
     for abmBar, label in pairs(expected) do
       assert.are.equal(label, ns.GetBarLabel(abmBar))

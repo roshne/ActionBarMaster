@@ -21,7 +21,12 @@ local BAR_DEFS = {
   { abm = 9,  label = "Class 3"   },
   { abm = 10, label = "Class 4"   },
   { abm = 12, label = "Class 5"   },
-  { abm = 11, label = "Skyriding" },
+  -- "Sky", not "Skyriding": the label has to match LibNUI's ui.BarsPreview, which
+  -- sizes its label column for "Class 1" and stacks it one char per line down a
+  -- vertical bar — and the selector chip, which is 40px wide. Those two can't hold
+  -- the long form, so this surface takes the short one rather than leaving a bar
+  -- with three different names across the UI.
+  { abm = 11, label = "Sky"       },
 }
 
 local abmToBarDef = {}
