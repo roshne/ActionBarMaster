@@ -7,6 +7,14 @@ local ns = select(2, ...)
 -- release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r10", notes = [==[
+### Bug Fixes
+- unify the skyriding bar on "Sky" (#135)
+
+### Other Changes
+- docs+fix: dead tooltip helpers, README drift from #126, and two window.lua nits (#134)
+
+]==] },
   { version = "12.0.7-r9", notes = [==[
 ### Bug Fixes
 - clear petaction/futurespell slots instead of round-tripping them (#133)
