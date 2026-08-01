@@ -6,6 +6,15 @@ name: push-notify
 on:
   push:
     branches: [main]
+    # Doc-only pushes don't earn a Discord post; a push mixing docs with code still
+    # notifies (paths-ignore skips only when EVERY changed path matches). CLAUDE.md
+    # is deliberately NOT here -- it steers Claude, so it's behaviour, not prose, and
+    # paths-ignore can't carry an exception, so we enumerate rather than glob **/*.md.
+    paths-ignore:
+      - '**/README.md'
+      - '**/CONTRIBUTING.md'
+      - '**/CONTEXT.md'
+      - 'docs/**'
 
 jobs:
   notify:
