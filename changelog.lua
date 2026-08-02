@@ -7,6 +7,11 @@ local ns = select(2, ...)
 -- release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.0.7-r11", notes = [==[
+### CI
+- stop announcing docs-only pushes (#136)
+
+]==] },
   { version = "12.0.7-r10", notes = [==[
 ### Bug Fixes
 - unify the skyriding bar on "Sky" (#135)
