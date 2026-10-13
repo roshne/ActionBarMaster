@@ -1,6 +1,7 @@
 local _, ns = ...
 
 local PickupItem    = C_Item  and C_Item.PickupItem      or _G.PickupItem
+local GetItemInfo   = C_Item  and C_Item.GetItemInfo
 
 local MAX_BARS = 180
 

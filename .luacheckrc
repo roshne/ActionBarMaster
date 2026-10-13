@@ -52,10 +52,10 @@ std = {
     "Constants", "Enum",
 
     -- action bars / spells / items / macros / bindings
-    "GetActionInfo", "GetFlyoutInfo", "GetFlyoutSlotInfo", "GetItemIcon", "GetItemInfo",
+    "GetActionInfo", "GetFlyoutInfo", "GetFlyoutSlotInfo",
     "GetMacroInfo", "GetPetActionInfo", "GetSpellInfo", "GetSpellLink", "GetSpellTexture",
     "CreateMacro", "GetNumMacros",
-    "PickupAction", "PickupMacro", "PickupItem", "PickupPetAction", "PickupPetSpell",
+    "PickupAction", "PickupMacro", "PickupPetAction", "PickupPetSpell",
     "PickupSpell", "PickupSpellBookItem", "PlaceAction", "PlayerHasToy",
     "C_KeyBindings", "GetBinding", "GetCurrentBindingSet", "GetNumBindings",
     "SaveBindings", "SetBinding",
