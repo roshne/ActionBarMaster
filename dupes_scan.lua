@@ -29,7 +29,7 @@ local function actionLabel(key)
   local t  = key:match("^([^|]+)|")
   local id = tonumber(key:match("|(%d+)$"))
   if (t == "spell" or t == "racial") and id then
-    return GetSpellInfo and GetSpellInfo(id) or key
+    return C_Spell.GetSpellName(id) or key
   end
   if t == "item" and id then return C_Item.GetItemInfo(id) or key end
   if t == "flyout" and id then
