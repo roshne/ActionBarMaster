@@ -106,7 +106,7 @@ local function getIcon(entry, macros)
       end
     end
   elseif t == "item" then
-    return GetItemIcon(entry.index)
+    return C_Item.GetItemIconByID(entry.index)
   elseif t == "summonmount" then
     local _, _, icon = C_MountJournal.GetMountInfoByID(entry.index)
     return icon

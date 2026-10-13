@@ -5,6 +5,7 @@ local _, ns = ...
 -- these and owns the miss/async-item summary (ns.RestoreMiss / ns.DeferItemWarn).
 local PickupSpell   = C_Spell and C_Spell.PickupSpell   or _G.PickupSpell
 local PickupItem    = C_Item  and C_Item.PickupItem      or _G.PickupItem
+local GetItemInfo   = C_Item  and C_Item.GetItemInfo
 local GetSpellLink  = C_Spell and C_Spell.GetSpellLink  or _G.GetSpellLink
 local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _G.PickupSpellBookItem
 local GetSpellName  = C_Spell and C_Spell.GetSpellName

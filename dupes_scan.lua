@@ -31,7 +31,7 @@ local function actionLabel(key)
   if (t == "spell" or t == "racial") and id then
     return GetSpellInfo and GetSpellInfo(id) or key
   end
-  if t == "item" and id then return GetItemInfo and GetItemInfo(id) or key end
+  if t == "item" and id then return C_Item.GetItemInfo(id) or key end
   if t == "flyout" and id then
     local name = GetFlyoutInfo and GetFlyoutInfo(id)
     return name and ("Flyout: " .. name) or key
