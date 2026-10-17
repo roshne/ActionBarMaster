@@ -1,8 +1,7 @@
 local _, ns = ...
 
 local PickupSpell  = C_Spell and C_Spell.PickupSpell or _G.PickupSpell
-local GetSpellName = C_Spell and C_Spell.GetSpellName
-                  or function(id) return (GetSpellInfo(id)) end
+local GetSpellName = C_Spell.GetSpellName
 
 local function BuildMaps()
   local byName, byID = {}, {}

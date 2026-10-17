@@ -8,7 +8,7 @@ local LBL_H = 14     -- title line
 -- so a full setup fills at a comfortable size.
 local MAX_SCALE = 1.75
 
-local GetSpellName = C_Spell and C_Spell.GetSpellName or function(id) return (GetSpellInfo(id)) end
+local GetSpellName = C_Spell.GetSpellName
 
 -- Pet-bar slot name: spell abilities by ID, command tokens by their captured name.
 local function petName(slot)

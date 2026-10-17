@@ -8,8 +8,7 @@ local PickupItem    = C_Item  and C_Item.PickupItem      or _G.PickupItem
 local GetItemInfo   = C_Item  and C_Item.GetItemInfo
 local GetSpellLink  = C_Spell and C_Spell.GetSpellLink  or _G.GetSpellLink
 local PickupSpellBookItem = C_SpellBook and C_SpellBook.PickupSpellBookItem or _G.PickupSpellBookItem
-local GetSpellName  = C_Spell and C_Spell.GetSpellName
-                   or function(id) return (GetSpellInfo(id)) end
+local GetSpellName  = C_Spell.GetSpellName
 
 local function Warn(msg)
   ns.Print("|cffff9900[Bars]|r " .. msg)

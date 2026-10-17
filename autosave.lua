@@ -12,8 +12,8 @@ local function DoAutoSave()
   end
 
   -- Spec data may not be ready yet on login/reload; retry rather than saving "Unknown"
-  local spec     = GetSpecialization and GetSpecialization()
-  local specName = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
+  local spec     = C_SpecializationInfo.GetSpecialization()
+  local specName = spec and spec > 0 and select(2, C_SpecializationInfo.GetSpecializationInfo(spec))
   if not specName or specName == "" then
     ns:delay(2000, DoAutoSave)
     return

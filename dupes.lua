@@ -168,8 +168,8 @@ local function getWindow()
 
     -- spec filter
     if specFilter then
-      local si = GetSpecialization and GetSpecialization()
-      local cs = si and si > 0 and select(2, GetSpecializationInfo(si))
+      local si = C_SpecializationInfo.GetSpecialization()
+      local cs = si and si > 0 and select(2, C_SpecializationInfo.GetSpecializationInfo(si))
       specBtn:Text(cs or "All Specs")
       if cs then
         local tmp = {}
