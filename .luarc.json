@@ -76,7 +76,6 @@
     "GetFlyoutSlotInfo",
     "GetMacroInfo",
     "GetPetActionInfo",
-    "GetSpellInfo",
     "GetSpellLink",
     "GetSpellTexture",
     "CreateMacro",
@@ -99,8 +98,7 @@
 
     "GetProfessions",
     "GetProfessionInfo",
-    "GetSpecialization",
-    "GetSpecializationInfo",
+    "C_SpecializationInfo",
     "InCombatLockdown",
     "IsPetActive",
     "IsSpellKnown",

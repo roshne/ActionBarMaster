@@ -90,8 +90,8 @@ function ns.BuildProfileList(parent, onSelect)
   end
 
   Refresh = function()
-    local spec       = GetSpecialization and GetSpecialization()
-    local playerSpec = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
+    local spec       = C_SpecializationInfo.GetSpecialization()
+    local playerSpec = spec and spec > 0 and select(2, C_SpecializationInfo.GetSpecializationInfo(spec))
     local n, y = 0, 0
     for _, p in ipairs(ns.db.profiles) do
       -- shared profiles (p.class nil) ignore the class/spec filter entirely

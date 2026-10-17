@@ -38,8 +38,7 @@ local function BuildSpellOverrides()
   return map
 end
 
-local GetSpellNameFn = C_Spell and C_Spell.GetSpellName
-                    or function(id) return (GetSpellInfo(id)) end
+local GetSpellNameFn = C_Spell.GetSpellName
 
 -- Capture all non-empty action bar slots.
 -- includeOutfits:  when false, slots of type "outfit" are skipped.
@@ -171,8 +170,8 @@ end
 
 -- Build profile metadata from current character
 local function ProfileMeta()
-  local spec = GetSpecialization and GetSpecialization()
-  local specName = spec and select(2, GetSpecializationInfo(spec)) or "Unknown"
+  local spec = C_SpecializationInfo.GetSpecialization()
+  local specName = spec and select(2, C_SpecializationInfo.GetSpecializationInfo(spec)) or "Unknown"
   local _, class = UnitClass("player")
   return {
     char  = UnitName("player"),

@@ -48,12 +48,12 @@ std = {
 
     -- C_* namespaces
     "C_ActionBar", "C_AssistedCombat", "C_ClassColor", "C_EquipmentSet", "C_Item", "C_MountJournal",
-    "C_PetJournal", "C_Spell", "C_SpellBook", "C_ToyBox", "C_TransmogOutfitInfo",
+    "C_PetJournal", "C_Spell", "C_SpellBook", "C_SpecializationInfo", "C_ToyBox", "C_TransmogOutfitInfo",
     "Constants", "Enum",
 
     -- action bars / spells / items / macros / bindings
     "GetActionInfo", "GetFlyoutInfo", "GetFlyoutSlotInfo",
-    "GetMacroInfo", "GetPetActionInfo", "GetSpellInfo", "GetSpellLink", "GetSpellTexture",
+    "GetMacroInfo", "GetPetActionInfo", "GetSpellLink", "GetSpellTexture",
     "CreateMacro", "GetNumMacros",
     "PickupAction", "PickupMacro", "PickupPetAction", "PickupPetSpell",
     "PickupSpell", "PickupSpellBookItem", "PlaceAction", "PlayerHasToy",
@@ -61,7 +61,7 @@ std = {
     "SaveBindings", "SetBinding",
 
     -- character / professions / spec
-    "GetProfessions", "GetProfessionInfo", "GetSpecialization", "GetSpecializationInfo",
+    "GetProfessions", "GetProfessionInfo",
     "InCombatLockdown", "IsPetActive", "IsSpellKnown",
     "UnitClass", "UnitName", "UnitRace", "UnitSex",
 

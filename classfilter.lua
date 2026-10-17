@@ -33,8 +33,8 @@ local function ClassLabel(key, label)
 end
 
 local function CurrentSpecName()
-  local spec = GetSpecialization and GetSpecialization()
-  local name = spec and spec > 0 and select(2, GetSpecializationInfo(spec))
+  local spec = C_SpecializationInfo.GetSpecialization()
+  local name = spec and spec > 0 and select(2, C_SpecializationInfo.GetSpecializationInfo(spec))
   if name and name ~= "" then return name end
 end
 

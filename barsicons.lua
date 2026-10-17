@@ -1,7 +1,6 @@
 local _, ns = ...
 
-local GetSpellName = C_Spell and C_Spell.GetSpellName
-                  or function(id) return (GetSpellInfo(id)) end
+local GetSpellName = C_Spell.GetSpellName
 
 local function spellTex(id)
   if C_Spell and C_Spell.GetSpellTexture then return C_Spell.GetSpellTexture(id) end

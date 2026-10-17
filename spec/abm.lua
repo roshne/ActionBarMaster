@@ -55,6 +55,8 @@ end
 ---@return table ns a fresh Action Bar Master namespace with the pure-Lua modules loaded
 function abm.load(extra, nui)
   _G.bit = _G.bit or makeBit()
+  -- Files capture C_Spell.GetSpellName at load time (no fallback), so it must exist.
+  _G.C_Spell = _G.C_Spell or { GetSpellName = function() end }
   _G.IsWindowsClient = _G.IsWindowsClient or function() return false end
   local ns = {}
   for _, f in ipairs(FILES) do
