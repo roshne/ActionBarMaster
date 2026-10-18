@@ -7,6 +7,11 @@ local ns = select(2, ...)
 -- release notes.
 ---@type { version: string, notes: string }[]
 ns.changelog = {
+  { version = "12.1.5-r2", notes = [==[
+### Refactoring
+- use C_SpecializationInfo and drop dead GetSpellInfo fallbacks (#143)
+
+]==] },
   { version = "12.1.5-r1", notes = [==[
 ### Bug Fixes
 - target WoW 12.1.5 and replace its removed item globals (#141)
